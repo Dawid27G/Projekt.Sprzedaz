@@ -1,1 +1,1 @@
-# Projekt.Sprzeda
+# Projekt.Sprzedaz
