@@ -31,11 +31,44 @@ library(naniar)
 library(tidyr)
 library(finalfit) 
 
-
+```
+```{r setup, include = FALSE}
 
   dane <- read_excel("superstore.xls", sheet = 1)
-  dane_disc <- read_excel("superstore.xls", sheet = 2)
+  # drugi arkusz ze zwrotami
+  dane_ret <- read_excel("superstore.xls", sheet = 2)
+
+  # ---- Łączenie kolumny zwrotów z tabelą sprzedaży (dane) ----
+  {
+    # Zakładamy, że klucz to `Order ID` a kolumna zwrotów to `Returned` w drugim arkuszu (dane_ret)
+    if (!("Order ID" %in% names(dane))) {
+      message("Brak kolumny 'Order ID' w tabeli 'dane'. Sprawdź nazwy kolumn.")
+    } else if (!("Order ID" %in% names(dane_ret))) {
+      message("Brak kolumny 'Order ID' w tabeli 'dane_ret'. Sprawdź nazwy kolumn.")
+    } else if (!("Returned" %in% names(dane_ret))) {
+      message("Brak kolumny 'Returned' w tabeli 'dane_ret'. Sprawdź nazwy kolumn zwrotów.")
+    } else {
+      # agreguj zwroty gdy potrzeba (np. wiele rekordów zwrotu na jedno zamówienie)
+      if (any(duplicated(dane_ret$`Order ID`))) {
+        dane_ret_agg <- dane_ret %>%
+          group_by(`Order ID`) %>%
+          summarise(Returned = sum(Returned, na.rm = TRUE), .groups = "drop")
+      } else {
+        dane_ret_agg <- dane_ret %>% select(`Order ID`, Returned)
+      }
+
+      # left join po Order ID (zachowujemy wszystkie wiersze z `dane`)
+      dane <- left_join(dane, dane_ret_agg, by = "Order ID")
+
+      # Zastąp brakujące wartości w kolumnie Returned zerami
+      dane <- dane %>%
+        mutate(Returned = ifelse(is.na(Returned), 0, 1))
+  }}
+  View(dane)
+
 ```
+
+
 
   ```{r setup, include = FALSE}
 
@@ -50,6 +83,7 @@ gg_miss_case(dane) +
 gg_miss_upset(dane)
 miss_var_summary(dane)
 ```
+
 ```{r setup, include = FALSE}
 
 
@@ -192,6 +226,12 @@ md.pattern(dane)
 head(dane)
 ```
 
+```{r setup, include = FALSE}
+
+
+
+
+```
 
 
 
