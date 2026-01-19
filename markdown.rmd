@@ -5,11 +5,9 @@ date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
     highlight: kate
-    toc: true
-      toc_depth: 3
-      toc_float: 
-        collapsed: true
-        smooth_scroll: false
+    toc_depth: 3
+    toc_float: true
+      
 editor_options: 
   markdown: 
     wrap: 72
@@ -45,25 +43,34 @@ library(Hmisc)
   dane_disc <- read_excel("superstore.xls", sheet = 2)
 ```
 
-# **1. Wprowadzenie**
+# 1. Wprowadzenie
 
-Celem niniejszego projektu jest analiza zbioru danych "Superstore", zawierającego informacje o transakcjach detalicznych w sieci sklepów. Zbiór obejmuje dane o sprzedaży, zyskach, kategoriach produktów oraz lokalizacji klientów na terenie USA.
+Celem niniejszego projektu jest analiza zbioru danych "Superstore",
+zawierającego informacje o transakcjach detalicznych w sieci sklepów.
+Zbiór obejmuje dane o sprzedaży, zyskach, kategoriach produktów oraz
+lokalizacji klientów na terenie USA.
 
 Główne pytania badawcze:
 
-1.  Jaki wpływ mają rabaty na zysk - czy większy rabat zawsze zwiększa sprzedaż kosztem rentowności?
+1.  Jaki wpływ mają rabaty na zysk - czy większy rabat zawsze zwiększa
+    sprzedaż kosztem rentowności?
 
-2.  Które kategorie i podkategorie produktów generują najwyższą sprzedaż, a które najwyższy zysk?
+2.  Które kategorie i podkategorie produktów generują najwyższą
+    sprzedaż, a które najwyższy zysk?
 
-3.  Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?
+3.  Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej)
+    rentowności?
 
-4.  Jak zmieniały się sprzedaż i zysk w czasie - czy występuje sezonowość?
+4.  Jak zmieniały się sprzedaż i zysk w czasie - czy występuje
+    sezonowość?
 
-5.  Które produkty lub podkategorie generują straty i jakie czynniki (rabat, region, wysyłka) na to wpływają?
+5.  Które produkty lub podkategorie generują straty i jakie czynniki
+    (rabat, region, wysyłka) na to wpływają?
 
-# **2. Data Cleansing & Wrangling (Metodologia)**
+# 2. Data Cleansing & Wrangling (Metodologia)
 
-Proces przygotowania danych był wieloetapowy, aby zapewnić najwyższą jakość analizy.
+Proces przygotowania danych był wieloetapowy, aby zapewnić najwyższą
+jakość analizy.
 
 ```{r echo=FALSE}
 
@@ -78,7 +85,7 @@ gg_miss_upset(dane)
 miss_var_summary(dane)
 ```
 
-```{r echo=FALSE}
+```{r include=FALSE}
 
 
 
@@ -220,17 +227,28 @@ md.pattern(dane)
 head(dane)
 ```
 
-Identyfikacja braków: Wykryto braki danych w kluczowych zmiennych takich jak Discount (20%), Profit (11%) oraz danych adresowych.
+-   **Identyfikacja braków:** Wykryto braki danych w kluczowych
+    zmiennych takich jak Discount (20%), Profit (11%) oraz danych
+    adresowych.
 
-Imputacja danych numerycznych: Zastosowano zaawansowany algorytm MICE (Multivariate Imputation by Chained Equations) z metodą PMM (Predictive Mean Matching). Pozwala to na uzupełnienie braków w oparciu o korelacje z innymi zmiennymi, co jest bardziej precyzyjne niż użycie średniej.
+-   **Imputacja danych numerycznych:** Zastosowano zaawansowany algorytm
+    MICE (Multivariate Imputation by Chained Equations) z metodą PMM
+    (Predictive Mean Matching). Pozwala to na uzupełnienie braków w
+    oparciu o korelacje z innymi zmiennymi, co jest bardziej precyzyjne
+    niż użycie średniej.
 
-Hot-deck Imputation: Dla zmiennych kategorycznych (np. Ship Mode) użyto metody hot-deck, losując wartości z istniejącego rozkładu wewnątrz grup (Region/Segment).
+-   **Hot-deck Imputation:** Dla zmiennych kategorycznych (np. Ship
+    Mode) użyto metody hot-deck, losując wartości z istniejącego
+    rozkładu wewnątrz grup (Region/Segment).
 
-Logika biznesowa: Braki w nazwach miast i stanów uzupełniono na podstawie kodów pocztowych (Postal Code), wykorzystując relacje przestrzenne w danych.
+-   Braki w nazwach miast i stanów uzupełniono na podstawie kodów
+    pocztowych (Postal Code), wykorzystując relacje przestrzenne w
+    danych.
 
-Czas dostawy: Brakujące daty wysyłki wyliczono na podstawie mediany czasu dostawy dla danego trybu wysyłki i regionu.
+-    Brakujące daty wysyłki wyliczono na podstawie mediany czasu dostawy
+    dla danego trybu wysyłki i regionu.
 
-# **3. Wizualicje danych**
+# 3. Wizualicje danych
 
 ```{r setup, include = FALSE}
 df <- dane %>%
@@ -448,47 +466,47 @@ for (i in 2:n) {
 }
 ```
 
-# **4. Analiza opisowa**
+# 4. Analiza opisowa
 
-# **5. Wnioskowanie (testy statystyczne)**
+# 5. Wnioskowanie statystyczne
 
-## **5.1. Test ANOVA - Czy średni zysk różni się między kategoriami produktów?**
+## 5.1 Analiza regresji
 
-{r} ggboxplot(dane, x = "Category", y = "Profit", color = "Category", palette = "jco", ylab = "Zysk (\$)", xlab = "Kategoria") + coord_cartesian(ylim = c(-200, 500))
+Pytanie: Jaki wpływ mają rabaty na zysk - czy większy rabat zawsze
+zwiększa sprzedaż kosztem rentowności?
 
-plotmeans(Profit \~ Category, data = dane, xlab = "Kategoria", ylab = "Zysk", main="Wykres średnich z 95% CI")
+```{r echo=FALSE}
+# Model regresji
+model_discount <- lm(Profit ~ Discount, data = dane)
+summary(model_discount)
 
-dane %\>% group_by(Category) %\>% shapiro_test(Profit)
 
-ggplot(dane, aes(sample = Profit, colour = Category)) + stat_qq() + stat_qq_line() + facet_wrap(\~Category) + theme_bw()
+# Poprawiony wykres regresji
+ggplot(dane, aes(x = Discount, y = Profit)) +
+  stat_bin2d(bins = 30) +
+  scale_fill_gradient(low = "lightblue", high = "red") +
+  geom_smooth(method = "lm", color = "white", se = TRUE) +
+  labs(
+    title = "Gęstość relacji: Rabat vs Zysk",
+    x = "Rabat",
+    y = "Zysk ($)",
+    fill = "Liczba transakcji"
+  ) +
+  theme_minimal()
 
-leveneTest(Profit \~ Category, data = dane)
+```
 
-oneway.test(Profit \~ Category, data = dane, var.equal = FALSE \# zakładamy brak jednorodności )
+Analiza regresji wykazała silną, ujemną zależność między wysokością
+udzielanych rabatów a wypracowanym zyskiem (p \< 0.05). Każdy punkt
+procentowy rabatu statystycznie obniża marżę operacyjną. Choć rabaty
+mają na celu stymulowanie sprzedaży, dane pokazują, że przekroczenie
+progu 20-30% rabatu w większości przypadków prowadzi do nieodwracalnej
+utraty rentowności transakcji.
 
-model \<- aov(Profit \~ Category, data = dane) post_hoc \<- TukeyHSD(model) print(post_hoc)
+## 5.1. Test ANOVA - Czy średni zysk różni się między kategoriami produktów?
 
-ggbetweenstats( data = dane, x = Category, y = Profit,\
-type = "p", conf.level = 0.95, var.equal = FALSE, \# Welch ANOVA pairwise.display = "significant", package = "ggthemes", palette = "Tableau_10", title = "Porównanie zysków między kategoriami", caption = "Źródło: Superstore Dataset" ) + coord_cartesian(ylim = c(-100, 300))
+## 5.2. ANOVA 2-czynnikowa - Region x Kategoria a rentowność
 
-## **5.2. ANOVA 2-czynnikowa - Region x Kategoria a rentowność**
+## 5.3. Model regresji - Co determuinuje zysk?
 
-{r} df \<- df %\>% mutate(Profit_Ratio = Profit / Sales)
-
-Wizualizacja interakcji
-
-ggplot(df, aes(x = Region, y = Profit, color = Category, group = Category)) + stat_summary(fun = mean, geom = "line") + stat_summary(fun = mean, geom = "point") + labs(title = "Wykres interakcji: Region vs Kategoria", y = "Średni Zysk") + theme_minimal()
-
-Test statystyczny
-
-res_aov2 \<- aov(Profit \~ Region \* Category, data = df) summary(res_aov2)
-
-## **5.3. Model regresji - Co determuinuje zysk?**
-
-{r} reg_model \<- lm(Profit \~ Sales + Discount + Quantity + Category, data = dane) summary(reg_model)
-
-## **5.4. Testy korelacji Pearsona - Rabaty a Sprzedaż/Zysk**
-
-{r} \# 1. Test korelacji: Rabat vs Sprzedaż cor_sales \<- cor.test(dane$Discount, dane$Sales, method = "pearson")
-
-## **5.5. Test korelacji: Rabat vs Zysk**
+## 5.4. Testy korelacji Pearsona - Rabaty a Sprzedaż/Zysk
