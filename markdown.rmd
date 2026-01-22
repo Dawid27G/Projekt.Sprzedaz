@@ -245,7 +245,7 @@ head(dane)
     pocztowych (Postal Code), wykorzystując relacje przestrzenne w
     danych.
 
--   Brakujące daty wysyłki wyliczono na podstawie mediany czasu dostawy
+-    Brakujące daty wysyłki wyliczono na podstawie mediany czasu dostawy
     dla danego trybu wysyłki i regionu.
 
 # 3. Wizualicje danych
