@@ -72,7 +72,7 @@ Główne pytania badawcze:
 Proces przygotowania danych był wieloetapowy, aby zapewnić najwyższą
 jakość analizy.
 
-```{r echo=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
 miss_var_summary(dane)
 miss_case_summary(dane)
@@ -467,6 +467,202 @@ for (i in 2:n) {
 ```
 
 # 4. Analiza opisowa
+Analiza opisowa pozwala zrozumieć podstawowe cechy zbioru danych za pomocą miar statystycznych, takich jak średnia, mediana czy odchylenie standardowe. W tym rozdziale przedstawiono szczegółowe statystyki dla wybranych zmiennych, co stanowi podstawę do dalszej analizy.
+
+
+Rozkład sprzedaży charakteryzuje się silną asymetrią prawostronną – aż 60% transakcji (ok. 6 tys.) generuje sprzedaż w najniższym przedziale (0-100 USD). W związku z tym, klasyczny podział na równe przedziały byłby nieefektywny. Zastosowanie algorytmu Natural Breaks (Jenks) pozwoliło na optymalne wyznaczenie granic klas, co potwierdza wysoka wartość wskaźnika TAI.
+```{r}
+library(classInt)
+library(frequency)
+library(kableExtra)
+# Przygotowanie przedziałów dla Sales
+etykiety <- c("0-100", "100-500", "500-1000", "1000-5000", "5000+")
+limity <- cut(dane$Sales, 
+              breaks = c(0, 100, 500, 1000, 5000, max(dane$Sales)), 
+              labels = etykiety)
+
+# Tabela częstości
+tabela_sales <- freq(limity)
+
+
+```
+NIE WYCHODZI MI TAI TEST
+```{r}
+kbl(tabela_sales, caption = "Tabela 1. Rozkład sprzedaży w Superstore (USD)") %>%
+  kable_material(c("striped", "hover"))
+
+# Test TAI metodą Jenksa
+tab1_tai <- classIntervals(dane$Sales, n = 5, style = "fixed",
+                           fixedBreaks = c(0, 100, 500, 1000, 5000, max(dane$Sales)))
+tai_wynik <- jenks.tests(tab1_tai)
+```
+
+```{r}
+library(psych)
+library(kableExtra)
+library(dplyr)
+
+# 1. Obliczamy statystyki
+desc_stats <- describe(dane[, c("Sales", "Profit", "Discount", "Quantity")])
+
+# 2. Tworzymy tabelę, ignorując błędy konwersji i RĘCZNIE dodając nazwy
+stats_df <- as.data.frame(as.matrix(desc_stats)) %>%
+  select( mean, sd, median, min, max, skew, kurtosis)
+
+# 3. Dodajemy kolumnę z nazwami na sztywno
+stats_df <- cbind(Zmienna = c("Sales", "Profit", "Discount", "Quantity"), stats_df)
+
+# 4. Wyświetlamy tabelę
+stats_df %>%
+  kbl(digits = 2, 
+      row.names = FALSE,  # To wyłączy te brzydkie numery typu 10331
+      caption = "Tabela 2. Charakterystyka statystyczna kluczowych zmiennych",
+      col.names = c("Zmienna", "Średnia", "Odch. std.", "Mediana", "Min", "Max", "Skośność", "Kurtoza")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                full_width = F, position = "center") %>%
+  column_spec(1, bold = T, color = "white", background = "#2c3e50") %>%
+  row_spec(0, background = "#2c3e50", color = "white", bold = T)
+```
+
+```{r}
+# Grupowanie i analiza rentowności
+cat_profitability <- dane %>%
+  group_by(Category) %>%
+  summarise(
+    Transakcje = n(),
+    `Śr. Sprzedaż` = mean(Sales),
+    `Śr. Zysk` = mean(Profit),
+    `Śr. Rabat` = mean(Discount),
+    `Łączny Zysk` = sum(Profit)
+  )
+
+# Tabela z heatmapą kolorystyczną dla zysku
+cat_profitability %>%
+  kbl(digits = 2, caption = "Tabela 2. Porównanie efektywności w segmentach produktowych") %>%
+  kable_paper("striped", full_width = F) %>%
+  column_spec(4, bold = T, color = "white", 
+              background = spec_color(cat_profitability$`Śr. Zysk`, option = "D")) %>%
+  column_spec(6, bold = T, color = "black", background = "#f9f9f9") %>%
+  add_header_above(c(" " = 2, "Miary średnie" = 3, "Wynik końcowy" = 1))
+```
+
+```{r}
+# Statystyki zysku wg kategorii
+profit_by_cat <- dane %>%
+  group_by(Category) %>%
+  summarise(
+    N = n(),
+    `Średni Zysk` = mean(Profit),
+    Mediana = median(Profit),
+    `Odch. std.` = sd(Profit),
+    `Suma Zysku` = sum(Profit)
+  )
+
+kbl(profit_by_cat, digits = 2, caption = "Tabela 2. Porównanie rentowności kategorii produktów") %>%
+  kable_paper("striped", full_width = F) %>%
+  column_spec(2, color = "white", background = "#34495e") %>%
+  column_spec(6, bold = T, color = "white", 
+              background = spec_color(profit_by_cat$`Suma Zysku`, option = "D"))
+```
+
+```{r}
+library(dplyr)
+library(kableExtra)
+library(psych)
+
+# 1. Przygotowanie danych z podziałem na Kategorię i Region
+reg_cat_summary <- dane %>% 
+  group_by(Category, Region) %>%
+  summarise(
+    N = n(),
+    Średnia = mean(Profit),
+    Mediana = median(Profit),
+    `Suma Zysku` = sum(Profit),
+    Skośność = skew(Profit),
+    .groups = "drop"
+  )
+
+# 2. Generowanie tabeli
+reg_cat_summary %>%
+  select(-Category) %>% # Usuwamy kolumnę Category, bo zrobimy z niej nagłówki sekcji
+  kbl(digits = 2, 
+      caption = "Tabela 3. Analiza zysku w podziale na Kategorie i Regiony",
+      col.names = c("Region", "N", "Średnia", "Mediana", "Suma Zysku", "Skośność")) %>%
+  kable_paper("striped", full_width = F) %>%
+  # Dodajemy kolorowanie dla Sumy Zysku (kolumna 5 w tabeli po usunięciu Category)
+  column_spec(5, bold = T, color = "white", 
+              background = spec_color(reg_cat_summary$`Suma Zysku`, option = "D")) %>%
+  # Grupowanie wierszy według Kategorii
+  pack_rows("Furniture", 1, 4) %>%
+  pack_rows("Office Supplies", 5, 8) %>%
+  pack_rows("Technology", 9, 12) %>%
+  # Estetyka nagłówka
+  row_spec(0, background = "#2c3e50", color = "white", bold = T)
+
+```
+
+
+```{r}
+library(ggridges)
+library(ggplot2)
+
+ggplot(dane, aes(x = Profit, y = Region, fill = Region)) +
+  geom_density_ridges(alpha = 0.6, scale = 1.5) +
+  scale_x_continuous(limits = c(-200, 500)) + # Skupiamy się na "ciekawym" przedziale
+  theme_ridges() + 
+  theme(legend.position = "none") +
+  labs(title = "Rozkład zysku w podziale na Regiony",
+     
+       x = "Zysk ($)", y = "Region")
+```
+
+```{r}
+summary_stats <- dane %>%
+  summarise(
+    Średnia_Sprzedaż = mean(Sales, na.rm = TRUE),
+    Mediana_Sprzedaż = median(Sales, na.rm = TRUE),
+    SD_Sprzedaż = sd(Sales, na.rm = TRUE),
+    Średnia_Zysk = mean(Profit, na.rm = TRUE),
+    Mediana_Zysk = median(Profit, na.rm = TRUE),
+    SD_Zysk = sd(Profit, na.rm = TRUE),
+    Liczba_Transakcji = n()
+  )
+```
+
+
+```{r}
+# Statystyki zysku wg regionu
+profit_by_region <- dane %>%
+  group_by(Region) %>%
+  summarise(
+    N = n(),
+    `Średni Zysk` = mean(Profit),
+    Mediana = median(Profit),
+    `Odch. std.` = sd(Profit),
+    `Suma Zysku` = sum(Profit)
+  )
+kbl(profit_by_region, digits = 2, caption = "Tabela 3. Porównanie rentowności wg regionów") %>%
+  kable_paper("striped", full_width = F) %>%
+  column_spec(2, color = "white", background = "#34495e") %>%
+  column_spec(6, bold = T, color = "white", 
+              background = spec_color(profit_by_region$`Suma Zysku`, option = "D"))
+
+```
+
+Wstępna analiza opisowa danych "Superstore" ujawniła kilka kluczowych
+spostrzeżeń:
+-   **Sprzedaż i zysk:** Średnia sprzedaż na transakcję wynosiła około
+    230 USD, podczas gdy średni zysk to około 28 USD. Jednakże
+    rozkład zysków jest silnie skośny, z wieloma transakcjami
+    generującymi straty.
+-   **Kategorie produktów:** Elektronika i meble generowały najwyższą
+    sprzedaż, ale to artykuły biurowe miały najwyższą marżę zysku.
+-   **Regiony:** Region Zachodni miał najwyższą sprzedaż, ale również
+    największą liczbę transakcji przynoszących straty.
+
+Te wstępne obserwacje stanowią podstawę do dalszych analiz statystycznych
+i modelowania, które pozwolą lepiej zrozumieć czynniki wpływające na
+wyniki sprzedażowe i finansowe sieci sklepów.
 
 # 5. Wnioskowanie statystyczne
 W niniejszym rozdziale zweryfikowano hipotezy badawcze dotyczące
@@ -524,7 +720,7 @@ utraty rentowności transakcji.
 
 5.2
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Model regresji
 
 model_discount <- lm(Profit ~ Discount, data = dane)
