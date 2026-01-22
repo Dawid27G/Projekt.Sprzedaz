@@ -67,7 +67,7 @@ Główne pytania badawcze:
 5.  Które produkty lub podkategorie generują straty i jakie czynniki
     (rabat, region, wysyłka) na to wpływają?
 
-# 2. Data Cleansing & Data Wrangling 
+# 2. Data Cleansing & Data Wrangling
 
 Proces przygotowania danych był wieloetapowy, aby zapewnić najwyższą
 jakość analizy.
@@ -245,12 +245,12 @@ head(dane)
     pocztowych (Postal Code), wykorzystując relacje przestrzenne w
     danych.
 
--    Brakujące daty wysyłki wyliczono na podstawie mediany czasu dostawy
+-   Brakujące daty wysyłki wyliczono na podstawie mediany czasu dostawy
     dla danego trybu wysyłki i regionu.
 
 # 3. Wizualicje danych
 
-```{r setup, include = FALSE}
+```{r, include = FALSE}
 df <- dane %>%
   mutate(
     `Order Date` = as.Date(`Order Date`),
@@ -467,11 +467,20 @@ for (i in 2:n) {
 ```
 
 # 4. Analiza opisowa
-Analiza opisowa pozwala zrozumieć podstawowe cechy zbioru danych za pomocą miar statystycznych, takich jak średnia, mediana czy odchylenie standardowe. W tym rozdziale przedstawiono szczegółowe statystyki dla wybranych zmiennych, co stanowi podstawę do dalszej analizy.
 
+Analiza opisowa pozwala zrozumieć podstawowe cechy zbioru danych za
+pomocą miar statystycznych, takich jak średnia, mediana czy odchylenie
+standardowe. W tym rozdziale przedstawiono szczegółowe statystyki dla
+wybranych zmiennych, co stanowi podstawę do dalszej analizy.
 
-Rozkład sprzedaży charakteryzuje się silną asymetrią prawostronną – aż 60% transakcji (ok. 6 tys.) generuje sprzedaż w najniższym przedziale (0-100 USD). W związku z tym, klasyczny podział na równe przedziały byłby nieefektywny. Zastosowanie algorytmu Natural Breaks (Jenks) pozwoliło na optymalne wyznaczenie granic klas, co potwierdza wysoka wartość wskaźnika TAI.
-```{r}
+Rozkład sprzedaży charakteryzuje się silną asymetrią prawostronną – aż
+60% transakcji (ok. 6 tys.) generuje sprzedaż w najniższym przedziale
+(0-100 USD). W związku z tym, klasyczny podział na równe przedziały
+byłby nieefektywny. Zastosowanie algorytmu Natural Breaks (Jenks)
+pozwoliło na optymalne wyznaczenie granic klas, co potwierdza wysoka
+wartość wskaźnika TAI.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(classInt)
 library(frequency)
 library(kableExtra)
@@ -486,8 +495,10 @@ tabela_sales <- freq(limity)
 
 
 ```
+
 NIE WYCHODZI MI TAI TEST
-```{r}
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 kbl(tabela_sales, caption = "Tabela 1. Rozkład sprzedaży w Superstore (USD)") %>%
   kable_material(c("striped", "hover"))
 
@@ -497,7 +508,7 @@ tab1_tai <- classIntervals(dane$Sales, n = 5, style = "fixed",
 tai_wynik <- jenks.tests(tab1_tai)
 ```
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(psych)
 library(kableExtra)
 library(dplyr)
@@ -524,7 +535,7 @@ stats_df %>%
   row_spec(0, background = "#2c3e50", color = "white", bold = T)
 ```
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Grupowanie i analiza rentowności
 cat_profitability <- dane %>%
   group_by(Category) %>%
@@ -546,7 +557,7 @@ cat_profitability %>%
   add_header_above(c(" " = 2, "Miary średnie" = 3, "Wynik końcowy" = 1))
 ```
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Statystyki zysku wg kategorii
 profit_by_cat <- dane %>%
   group_by(Category) %>%
@@ -565,7 +576,7 @@ kbl(profit_by_cat, digits = 2, caption = "Tabela 2. Porównanie rentowności kat
               background = spec_color(profit_by_cat$`Suma Zysku`, option = "D"))
 ```
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(dplyr)
 library(kableExtra)
 library(psych)
@@ -601,8 +612,7 @@ reg_cat_summary %>%
 
 ```
 
-
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(ggridges)
 library(ggplot2)
 
@@ -616,7 +626,7 @@ ggplot(dane, aes(x = Profit, y = Region, fill = Region)) +
        x = "Zysk ($)", y = "Region")
 ```
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 summary_stats <- dane %>%
   summarise(
     Średnia_Sprzedaż = mean(Sales, na.rm = TRUE),
@@ -629,8 +639,7 @@ summary_stats <- dane %>%
   )
 ```
 
-
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Statystyki zysku wg regionu
 profit_by_region <- dane %>%
   group_by(Region) %>%
@@ -650,21 +659,20 @@ kbl(profit_by_region, digits = 2, caption = "Tabela 3. Porównanie rentowności 
 ```
 
 Wstępna analiza opisowa danych "Superstore" ujawniła kilka kluczowych
-spostrzeżeń:
--   **Sprzedaż i zysk:** Średnia sprzedaż na transakcję wynosiła około
-    230 USD, podczas gdy średni zysk to około 28 USD. Jednakże
-    rozkład zysków jest silnie skośny, z wieloma transakcjami
-    generującymi straty.
--   **Kategorie produktów:** Elektronika i meble generowały najwyższą
-    sprzedaż, ale to artykuły biurowe miały najwyższą marżę zysku.
--   **Regiony:** Region Zachodni miał najwyższą sprzedaż, ale również
-    największą liczbę transakcji przynoszących straty.
+spostrzeżeń: - **Sprzedaż i zysk:** Średnia sprzedaż na transakcję
+wynosiła około 230 USD, podczas gdy średni zysk to około 28 USD.
+Jednakże rozkład zysków jest silnie skośny, z wieloma transakcjami
+generującymi straty. - **Kategorie produktów:** Elektronika i meble
+generowały najwyższą sprzedaż, ale to artykuły biurowe miały najwyższą
+marżę zysku. - **Regiony:** Region Zachodni miał najwyższą sprzedaż, ale
+również największą liczbę transakcji przynoszących straty.
 
-Te wstępne obserwacje stanowią podstawę do dalszych analiz statystycznych
-i modelowania, które pozwolą lepiej zrozumieć czynniki wpływające na
-wyniki sprzedażowe i finansowe sieci sklepów.
+Te wstępne obserwacje stanowią podstawę do dalszych analiz
+statystycznych i modelowania, które pozwolą lepiej zrozumieć czynniki
+wpływające na wyniki sprzedażowe i finansowe sieci sklepów.
 
 # 5. Wnioskowanie statystyczne
+
 W niniejszym rozdziale zweryfikowano hipotezy badawcze dotyczące
 kluczowych wyników sprzedażowych i finansowych. Celem analizy jest
 sprawdzenie, czy zależności zauważone w danych (np. wpływ rabatów na
@@ -680,8 +688,9 @@ zależności.
 Poniższa analiza sprawdza wpływ polityki rabatowej na rentowność
 sprzedaży.
 
-*H0* Nie istnieje statystycznie istotna zależność między wysokością
+**H0:** Nie istnieje statystycznie istotna zależność między wysokością
 rabatu a zyskiem.
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
  test_kor <- cor.test(dane$Discount, dane$Profit, method = "pearson")
 
@@ -713,10 +722,9 @@ zyskiem. Oznacza to, że zwiększanie poziomu rabatów wiąże się ze
 spadkiem zysku ze sprzedaży. Choć siła tego związku jest słaba
 ($r = -0.22$), wynik jest wysoce istotny statystycznie ze względu na
 dużą liczebność próby, co potwierdza negatywny wpływ obecnej polityki
-rabatowej na marżowość. Choć rabaty
-mają na celu stymulowanie sprzedaży, dane pokazują, że przekroczenie
-progu 20-30% rabatu w większości przypadków prowadzi do nieodwracalnej
-utraty rentowności transakcji.
+rabatowej na marżowość. Choć rabaty mają na celu stymulowanie sprzedaży,
+dane pokazują, że przekroczenie progu 20-30% rabatu w większości
+przypadków prowadzi do nieodwracalnej utraty rentowności transakcji.
 
 5.2
 
