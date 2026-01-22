@@ -37,7 +37,7 @@ library(finalfit)
 library(plotly)
 library(corrplot)
 library(Hmisc)
-
+library(ggstatsplot)
 
   dane <- read_excel("superstore.xls", sheet = 1)
   dane_disc <- read_excel("superstore.xls", sheet = 2)
@@ -67,7 +67,7 @@ Główne pytania badawcze:
 5.  Które produkty lub podkategorie generują straty i jakie czynniki
     (rabat, region, wysyłka) na to wpływają?
 
-# 2. Data Cleansing & Wrangling (Metodologia)
+# 2. Data Cleansing & Data Wrangling 
 
 Proces przygotowania danych był wieloetapowy, aby zapewnić najwyższą
 jakość analizy.
@@ -469,14 +469,64 @@ for (i in 2:n) {
 # 4. Analiza opisowa
 
 # 5. Wnioskowanie statystyczne
+W niniejszym rozdziale zweryfikowano hipotezy badawcze dotyczące
+kluczowych wyników sprzedażowych i finansowych. Celem analizy jest
+sprawdzenie, czy zależności zauważone w danych (np. wpływ rabatów na
+zysk czy różnice między regionami) są istotne statystycznie, czy
+wynikają jedynie z przypadku. W procesie badawczym wykorzystano testy
+statystyczne dobrane do rodzaju danych (ilościowych i jakościowych). Dla
+wszystkich testów przyjęto poziom istotności $\alpha = 0,05$. Wynik
+$p < 0,05$ uznawano za dowód na istnienie statystycznie istotnej
+zależności.
 
-## 5.1 Analiza regresji
+## 5.1. Korelacja Pearsona
 
-Pytanie: Jaki wpływ mają rabaty na zysk - czy większy rabat zawsze
-zwiększa sprzedaż kosztem rentowności?
+Poniższa analiza sprawdza wpływ polityki rabatowej na rentowność
+sprzedaży.
 
-```{r echo=FALSE}
+*H0* Nie istnieje statystycznie istotna zależność między wysokością
+rabatu a zyskiem.
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ test_kor <- cor.test(dane$Discount, dane$Profit, method = "pearson")
+
+#wykres regresji
+ggscatterstats(
+  data = dane, ## data frame from which variables are taken
+  x = "Discount",  
+  y = "Profit", 
+  xlab = "Rabat", 
+  ylab = "Zysk ($)", 
+  
+  ggtheme = theme_classic() + theme(
+    panel.grid = element_blank(),      # Usuwa siatkę
+    
+    axis.ticks = element_blank()       # Usuwa te małe kreski przy osiach
+  ),
+  
+  # Opcje wizualne
+  point.args = list(alpha = 0.6, size = 3, color = "grey40"),
+  xfill = "#CC79A7", 
+  yfill = "#009E73"
+)
+
+```
+
+Analiza korelacji r-Pearsona wykazała istnienie statystycznie istotnej,
+ujemnej zależności pomiędzy wysokością udzielonego rabatu a generowanym
+zyskiem. Oznacza to, że zwiększanie poziomu rabatów wiąże się ze
+spadkiem zysku ze sprzedaży. Choć siła tego związku jest słaba
+($r = -0.22$), wynik jest wysoce istotny statystycznie ze względu na
+dużą liczebność próby, co potwierdza negatywny wpływ obecnej polityki
+rabatowej na marżowość. Choć rabaty
+mają na celu stymulowanie sprzedaży, dane pokazują, że przekroczenie
+progu 20-30% rabatu w większości przypadków prowadzi do nieodwracalnej
+utraty rentowności transakcji.
+
+5.2
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Model regresji
+
 model_discount <- lm(Profit ~ Discount, data = dane)
 summary(model_discount)
 
@@ -493,20 +543,6 @@ ggplot(dane, aes(x = Discount, y = Profit)) +
     fill = "Liczba transakcji"
   ) +
   theme_minimal()
-
 ```
 
-Analiza regresji wykazała silną, ujemną zależność między wysokością
-udzielanych rabatów a wypracowanym zyskiem (p \< 0.05). Każdy punkt
-procentowy rabatu statystycznie obniża marżę operacyjną. Choć rabaty
-mają na celu stymulowanie sprzedaży, dane pokazują, że przekroczenie
-progu 20-30% rabatu w większości przypadków prowadzi do nieodwracalnej
-utraty rentowności transakcji.
-
 ## 5.1. Test ANOVA - Czy średni zysk różni się między kategoriami produktów?
-
-## 5.2. ANOVA 2-czynnikowa - Region x Kategoria a rentowność
-
-## 5.3. Model regresji - Co determuinuje zysk?
-
-## 5.4. Testy korelacji Pearsona - Rabaty a Sprzedaż/Zysk
