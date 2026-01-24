@@ -38,6 +38,11 @@ library(plotly)
 library(corrplot)
 library(Hmisc)
 library(ggstatsplot)
+library(classInt)
+library(frequency)
+library(kableExtra)
+library(psych)
+library(ggridges)
 
   dane <- read_excel("superstore.xls", sheet = 1)
   dane_disc <- read_excel("superstore.xls", sheet = 2)
@@ -481,9 +486,6 @@ pozwoliło na optymalne wyznaczenie granic klas, co potwierdza wysoka
 wartość wskaźnika TAI.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-library(classInt)
-library(frequency)
-library(kableExtra)
 # Przygotowanie przedziałów dla Sales
 etykiety <- c("0-100", "100-500", "500-1000", "1000-5000", "5000+")
 limity <- cut(dane$Sales, 
@@ -509,9 +511,7 @@ tai_wynik <- jenks.tests(tab1_tai)
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-library(psych)
-library(kableExtra)
-library(dplyr)
+
 
 # 1. Obliczamy statystyki
 desc_stats <- describe(dane[, c("Sales", "Profit", "Discount", "Quantity")])
@@ -577,16 +577,14 @@ kbl(profit_by_cat, digits = 2, caption = "Tabela 2. Porównanie rentowności kat
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-library(dplyr)
-library(kableExtra)
-library(psych)
+
 
 # 1. Przygotowanie danych z podziałem na Kategorię i Region
 reg_cat_summary <- dane %>% 
   group_by(Category, Region) %>%
   summarise(
     N = n(),
-    Średnia = mean(Profit),
+    Srednia = mean(Profit),
     Mediana = median(Profit),
     `Suma Zysku` = sum(Profit),
     Skośność = skew(Profit),
@@ -613,8 +611,8 @@ reg_cat_summary %>%
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-library(ggridges)
-library(ggplot2)
+
+
 
 ggplot(dane, aes(x = Profit, y = Region, fill = Region)) +
   geom_density_ridges(alpha = 0.6, scale = 1.5) +
@@ -629,10 +627,10 @@ ggplot(dane, aes(x = Profit, y = Region, fill = Region)) +
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 summary_stats <- dane %>%
   summarise(
-    Średnia_Sprzedaż = mean(Sales, na.rm = TRUE),
+    Srednia_Sprzedaż = mean(Sales, na.rm = TRUE),
     Mediana_Sprzedaż = median(Sales, na.rm = TRUE),
     SD_Sprzedaż = sd(Sales, na.rm = TRUE),
-    Średnia_Zysk = mean(Profit, na.rm = TRUE),
+    Srednia_Zysk = mean(Profit, na.rm = TRUE),
     Mediana_Zysk = median(Profit, na.rm = TRUE),
     SD_Zysk = sd(Profit, na.rm = TRUE),
     Liczba_Transakcji = n()
