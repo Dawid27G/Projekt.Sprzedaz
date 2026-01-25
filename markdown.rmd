@@ -750,3 +750,440 @@ ggplot(dane, aes(x = Discount, y = Profit)) +
 ```
 
 ## 5.1. Test ANOVA - Czy średni zysk różni się między kategoriami produktów?
+#wizualizacje przykładowe
+
+```{r}
+# analiza według kategorii
+category_stats <- dane %>%
+  group_by(Category) %>%
+  summarise(
+    liczba_zamówień = n(),
+    średni_zysk = mean(Profit, na.rm = TRUE),
+    suma_sprzedaży = sum(Sales, na.rm = TRUE),
+    .groups = "drop"
+  )
+ggplot(category_stats, aes(x = liczba_zamówień, y = średni_zysk, size = suma_sprzedaży, color = Category)) +
+  geom_point(alpha = 0.6) + 
+  geom_text(aes(label = Category), vjust = -2, size = 4) +
+  scale_size_continuous(range = c(10, 35)) +
+  scale_x_continuous(limits = c(1500, 6500)) +
+  scale_y_continuous(limits = c(-5, 90)) +
+  labs(x = "Liczba zamówień", y = "Średni zysk ($)") +
+  theme_minimal()
+```
+
+
+```{r}
+# analiza według trybu wysyłki
+df$order_date <- as.Date(df$`Order Date`)
+df$ship_date <- as.Date(df$`Ship Date`)
+df$shipping_days <- as.numeric(df$ship_date - df$order_date)
+
+# Analiza według regionu
+region_stats <- df %>%
+  group_by(Region) %>%
+  summarise(
+    średni_czas_dostawy = mean(shipping_days, na.rm = TRUE),
+    liczba_zamówień = n(),
+    średni_zysk = mean(Profit, na.rm = TRUE),
+    średnia_sprzedaż = mean(Sales, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(średni_czas_dostawy)
+ggplot(region_stats, aes(x = reorder(Region, średni_czas_dostawy), y = średni_czas_dostawy, fill = średni_zysk)) +
+  geom_col() +
+  geom_text(aes(label = paste0(round(średni_czas_dostawy, 1), " dni")), 
+            vjust = -0.5, size = 4, fontface = "bold") +
+  scale_fill_gradient2(low = "red", mid = "yellow", high = "green", 
+                       midpoint = mean(region_stats$średni_zysk),
+                       name = "Śr. zysk ($)") +
+  labs(
+    title = "Średni czas dostawy wg regionu",
+    subtitle = "Im niższy słupiek = szybsza dostawa | Kolor = średni zysk",
+    x = "Region",
+    y = "Średni czas dostawy (dni)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text.x = element_text(size = 11)
+  )
+```
+
+
+```{r}
+#analiza według dni tygodnia
+
+polish_days <- c("poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela")
+df$weekday <- factor(weekdays(df$`Order Date`), levels = polish_days, ordered = TRUE)
+
+weekday_stats <- df %>%
+  group_by(weekday) %>%
+  summarise(
+    liczba_zamówień = n(),
+    średnia_wartość_zamówienia = mean(Sales, na.rm = TRUE),
+    średni_zysk = mean(Profit, na.rm = TRUE),
+    średni_czas_dostawy = mean(shipping_days, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(weekday)
+weekday_long <- weekday_stats %>%
+  pivot_longer(cols = c(liczba_zamówień, średnia_wartość_zamówienia, średni_zysk),
+               names_to = "metric",
+               values_to = "value")
+weekday_long <- weekday_long %>%
+  mutate(
+    metric = case_when(
+      metric == "liczba_zamówień" ~ "Liczba zamówień",
+      metric == "średnia_wartość_zamówienia" ~ "Śr. wartość zamówienia ($)",
+      metric == "średni_zysk" ~ "Śr. zysk ($)",
+      TRUE ~ metric
+    )
+  )
+
+ggplot(weekday_long, aes(x = weekday, y = metric, fill = value)) +
+  geom_tile(color = "white", size = 1) +
+  geom_text(aes(label = ifelse(
+    metric == "Liczba zamówień", 
+    round(value, 0),
+    paste0("$", round(value, 0))
+  )), color = "white", fontface = "bold", size = 4) +
+  scale_fill_gradient(low = "navy", high = "orange", name = "Wartość") +
+  labs(
+    title = "Wydajność dni tygodnia - Heatmap",
+    subtitle = "Kolor = wydajność (im ciemniejszy pomarańczowy = lepiej)",
+    x = "Dzień tygodnia",
+    y = "Metryka"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid = element_blank()
+  )
+
+```
+
+```{r}
+# ANALIZA WPŁYWU RABATÓW NA ZYSK
+df <- df %>%
+  mutate(
+    profit_margin = ifelse(Sales > 0, Profit / Sales * 100, NA),
+    discount_group = cut(Discount * 100,
+                         breaks = c(0, 10, 20, 30, 40, 50, 100),
+                         labels = c("0-10%", "11-20%", "21-30%", "31-40%", "41-50%", ">50%"),
+                         include.lowest = TRUE)
+  )
+discount_analysis <- df %>%
+  group_by(discount_group) %>%
+  summarise(
+    orders = n(),
+    avg_discount = mean(Discount, na.rm = TRUE) * 100,
+    avg_sales = mean(Sales, na.rm = TRUE),
+    avg_profit = mean(Profit, na.rm = TRUE),
+    avg_profit_margin = mean(profit_margin, na.rm = TRUE),
+    total_sales = sum(Sales, na.rm = TRUE),
+    total_profit = sum(Profit, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(discount_group) & orders > 0) %>%
+  mutate(
+    sales_share = total_sales / sum(total_sales, na.rm = TRUE) * 100,
+    profit_share = total_profit / sum(total_profit, na.rm = TRUE) * 100
+  )
+par(mfrow = c(2,2))
+#  Marża wg rabatu 
+barplot(discount_analysis$avg_profit_margin,
+        names.arg = discount_analysis$discount_group,
+        main = "Średnia marża wg rabatu",
+        xlab = "Grupa rabatu",
+        ylab = "Marża (%)",
+        col = ifelse(discount_analysis$avg_profit_margin >= 0, "darkgreen", "red"),
+        las = 1)
+abline(h = 0, col = "black", lwd = 1)
+#  Rabat vs zamówienia
+plot(1:nrow(discount_analysis), discount_analysis$orders,
+     type = "b", col = "green", lwd = 2,
+     main = "Rabat vs zamówienia",
+     xlab = "Grupa rabatu", ylab = "Liczba zamówień",
+     xaxt = "n")
+axis(1, at = 1:nrow(discount_analysis), labels = discount_analysis$discount_group)
+# Udział w zysku
+barplot(discount_analysis$profit_share,
+        names.arg = discount_analysis$discount_group,
+        main = "Udział w zysku",
+        xlab = "Grupa rabatu", ylab = "Udział w zysku (%)",
+        col = "steelblue",
+        las = 1)
+#rabat a wartosc zamowienia
+plot(1:nrow(discount_analysis), discount_analysis$avg_sales,
+     type = "b", col = "darkblue", lwd = 2,
+     main = "Rabat vs średnia wartość zakupu",
+     xlab = "Grupa rabatu", ylab = "Śr. wartość zakupu ($)",
+     xaxt = "n",
+     ylim = c(0, max(discount_analysis$avg_sales) * 1.1))
+axis(1, at = 1:nrow(discount_analysis), labels = discount_analysis$discount_group)
+abline(h = mean(df$Sales, na.rm = TRUE), col = "gray", lty = 2)
+text(x = nrow(discount_analysis)/2, y = mean(df$Sales, na.rm = TRUE) * 0.95,
+     labels = paste("Średnia globalna: $", round(mean(df$Sales, na.rm = TRUE), 2)),
+     cex = 0.8, col = "gray")
+par(mfrow = c(1, 1))
+```
+
+
+```{r}
+# Analiza podkategorii
+subcategory_analysis <- df %>%
+  group_by(Category,`Sub-Category`) %>%
+  summarise(
+    total_sales = sum(Sales, na.rm = TRUE),
+    total_profit = sum(Profit, na.rm = TRUE),
+    avg_profit_margin = mean(Profit / Sales * 100, na.rm = TRUE),
+    orders = n(),
+    .groups = "drop"
+  ) %>%
+  filter(total_sales > 0) %>%
+  arrange(desc(total_sales))
+top_profit_subcat <- subcategory_analysis %>%
+  arrange(desc(total_profit)) %>%
+  head(5)
+
+if(nrow(subcategory_analysis) > 0) {
+  top_sales_subcat <- head(subcategory_analysis, 5)
+  for(i in 1:nrow(top_sales_subcat)) 
+    par(mfrow = c(1, 2), mar = c(7, 4, 3, 1))
+  barplot(top_sales_subcat$total_sales/1000,
+          names.arg = top_sales_subcat$`Sub-Category`,
+          main = "Top 5 - Sprzedaż",
+          ylab = "Tys. $",
+          col = "steelblue",
+          las = 2)
+  
+  barplot(top_profit_subcat$total_profit/1000,
+          names.arg = top_profit_subcat$`Sub-Category`,
+          main = "Top 5 - Zysk",
+          ylab = "Tys. $",
+          col = ifelse(top_profit_subcat$total_profit < 0, "red", "darkgreen"),
+          las = 2)
+  
+  par(mfrow = c(1, 1))
+}
+```
+
+
+```{r}
+# ANALIZA REGIONÓW 
+region_summary <- df %>%
+  group_by(Region) %>%
+  summarise(
+    sprzedaż = sum(Sales, na.rm = TRUE) / 1000,
+    zysk = sum(Profit, na.rm = TRUE) / 1000,
+    marża = mean(Profit / Sales * 100, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(marża))
+par(mfrow = c(1,1))
+# sprzedaż vs marża
+rozmiar <- (abs(region_summary$zysk) / max(abs(region_summary$zysk))) * 15 + 20
+x_min <- floor(min(region_summary$sprzedaż) / 100) * 100
+x_max <- ceiling(max(region_summary$sprzedaż) / 100) * 100
+x_breaks <- seq(x_min, x_max, by = 100)
+plot(region_summary$sprzedaż, region_summary$marża,
+     pch = 19,
+     cex = rozmiar / 3,
+     col = ifelse(region_summary$marża >= 15, "green",
+                  ifelse(region_summary$marża >= 10, "orange", "red")),
+     main = "Regiony: Sprzedaż vs Marża",
+     xlab = "Sprzedaż (tys. $)",
+     ylab = "Marża (%)",
+     xaxt = "n", 
+     xlim = c(x_min, x_max))  
+axis(1, at = x_breaks)
+
+for(i in 1:nrow(region_summary)) {
+  if(region_summary$Region[i] == "West") {
+    text(region_summary$sprzedaż[i], region_summary$marża[i],
+         labels = region_summary$Region[i],
+         pos = 1, 
+         cex = 0.8,
+         offset = 0.5)
+  } else {
+    text(region_summary$sprzedaż[i], region_summary$marża[i],
+         labels = region_summary$Region[i],
+         pos = 3,  # na górze punktu
+         cex = 0.8,
+         offset = 0.5)
+  }
+}
+# marża wg regionu
+barplot(region_summary$marża,
+        names.arg = region_summary$Region,
+        col = ifelse(region_summary$marża >= 15, "darkgreen",
+                     ifelse(region_summary$marża >= 10, "orange", "red")),
+        main = "Marża wg regionu",
+        ylab = "Marża (%)",
+        las = 1)
+abline(h = 15, col = "green", lty = 2)
+abline(h = 10, col = "orange", lty = 2)
+par(mfrow = c(1, 1))
+```
+
+
+```{r}
+# ANALIZA SEZONOWOŚCI
+polish_months <- c("Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec",
+                   "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień")
+polish_months_short <- c("Sty", "Lut", "Mar", "Kwi", "Maj", "Cze",
+                         "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru")
+
+seasonality_analysis <- df %>%
+  mutate(
+    month_num = month(`Order Date`),
+    month = polish_months[month_num],  
+    year = year(`Order Date`)
+  ) %>%
+  group_by(month, month_num, year) %>%
+  summarise(
+    monthly_sales = sum(Sales, na.rm = TRUE),
+    monthly_profit = sum(Profit, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  group_by(month, month_num) %>%
+  summarise(
+    avg_sales = mean(monthly_sales, na.rm = TRUE),
+    avg_profit = mean(monthly_profit, na.rm = TRUE),
+    sd_sales = sd(monthly_sales, na.rm = TRUE),
+    sd_profit = sd(monthly_profit, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    month = factor(month, levels = polish_months, ordered = TRUE),
+    sales_seasonality_index = (avg_sales / mean(avg_sales, na.rm = TRUE)) * 100,
+    profit_seasonality_index = (avg_profit / mean(avg_profit, na.rm = TRUE)) * 100
+  ) %>%
+  arrange(month_num)
+
+if(nrow(seasonality_analysis) > 0) {
+  par(mfrow = c(1, 1))
+  
+  # Wykres sezonowości sprzedaży
+  plot(1:12, seasonality_analysis$sales_seasonality_index,
+       type = "o", col = "blue", lwd = 2, pch = 19,
+       main = "Sezonowość sprzedaży",
+       xlab = "Miesiąc", ylab = "Indeks (100 = średnia)",
+       xaxt = "n", ylim = c(0, max(seasonality_analysis$sales_seasonality_index) * 1.2))
+  axis(1, at = 1:12, labels = polish_months_short)
+  abline(h = 100, col = "gray", lty = 2)
+  grid()
+  
+  # Heatmap sezonowości
+  colors <- colorRampPalette(c("red", "yellow", "green"))(100)
+  sales_idx <- seasonality_analysis$sales_seasonality_index
+  profit_idx <- seasonality_analysis$profit_seasonality_index
+  
+  plot(0, 0, type = "n", xlim = c(0.5, 12.5), ylim = c(0.5, 2.5),
+       main = "Heatmap sezonowości", xlab = "Miesiąc", ylab = "",
+       xaxt = "n", yaxt = "n")
+  axis(1, at = 1:12, labels = polish_months_short)
+  axis(2, at = 1:2, labels = c("Sprzedaż", "Zysk"), las = 2)
+  
+  for(j in 1:12) {
+    col_idx <- max(1, min(100, round(sales_idx[j] / 150 * 100)))
+    rect(j - 0.4, 1.6, j + 0.4, 2.4,
+         col = colors[col_idx], border = "black")
+    text(j, 2, round(sales_idx[j], 0), cex = 0.7, font = 2)
+    
+    col_idx <- max(1, min(100, round(profit_idx[j] / 150 * 100)))
+    rect(j - 0.4, 0.6, j + 0.4, 1.4,
+         col = colors[col_idx], border = "black")
+    text(j, 1, round(profit_idx[j], 0), cex = 0.7, font = 2)
+  }
+  
+  legend("topright", legend = c("Niska", "Średnia", "Wysoka"),
+         fill = c("red", "yellow", "green"), cex = 0.7, bg = "white")
+}
+
+```
+
+```{r}
+# ANALIZA STRATNYCH PRODUKTÓW
+loss_products <- df %>%
+  filter(Profit < 0) %>%
+  group_by(Category, `Sub-Category`, `Product Name`) %>%
+  summarise(
+    total_loss = sum(Profit, na.rm = TRUE),
+    avg_discount = mean(Discount, na.rm = TRUE) * 100,
+    orders = n(),
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(total_loss) & total_loss < 0) %>%
+  arrange(total_loss)
+
+if(nrow(loss_products) > 0) {
+  top_losses <- head(loss_products, 10)
+  loss_subcategories <- loss_products %>%
+    group_by(Category, `Sub-Category`) %>%
+    summarise(
+      total_loss = sum(total_loss, na.rm = TRUE),
+      avg_discount = mean(avg_discount, na.rm = TRUE),
+      products = n(),
+      .groups = "drop"
+    ) %>%
+    filter(total_loss < 0) %>%
+    arrange(total_loss)
+  
+  #  Top produkty ze stratami
+  par(mfrow = c(1, 2))
+  # strata vs rabat
+  plot(abs(top_losses$total_loss) ~ top_losses$avg_discount,
+       pch = 21, 
+       bg = "red", 
+       cex = sqrt(abs(top_losses$total_loss) / max(abs(top_losses$total_loss))) * 3,
+       main = "Produkty ze stratami: strata vs rabat",
+       xlab = "Średni rabat (%)",
+       ylab = "Wartość strat ($)")
+  text(top_losses$avg_discount, abs(top_losses$total_loss),
+       labels = 1:nrow(top_losses), 
+       pos = 3, 
+       cex = 0.7)
+  grid()
+  legend_size <- c(100, 500, 1000)
+  legend("topright", 
+         legend = paste("$", legend_size),
+         pt.cex = sqrt(legend_size / max(abs(top_losses$total_loss))) * 3,
+         pch = 21, 
+         pt.bg = "red",
+         title = "Wartość strat",
+         cex = 0.8)
+  #  Podkategorie ze stratami 
+  top_n <- min(8, nrow(loss_subcategories))
+  top_subcats <- head(loss_subcategories, top_n)
+  x_pos <- 1:top_n
+  y_vals <- abs(top_subcats$total_loss)
+  
+  plot(x_pos, y_vals,
+       type = "n",
+       main = "Top podkategorie ze stratami",
+       xlab = "",
+       ylab = "Wartość strat ($)",
+       xaxt = "n",
+       ylim = c(0, max(y_vals) * 1.1))
+  segments(x_pos, 0, x_pos, y_vals, 
+           col = "gray", 
+           lwd = 2)
+  points(x_pos, y_vals, 
+         pch = 21, 
+         bg = "red", 
+         cex = 3,
+         col = "darkred")
+  text(x_pos, y_vals, 
+       labels = paste0("$", round(y_vals)),
+       pos = 3, 
+       cex = 0.7)
+  axis(1, at = x_pos, labels = top_subcats$`Sub-Category`, las = 2, cex.axis = 0.8)
+  
+  grid()
+}
+par(mfrow = c(1, 1))
+```
+
