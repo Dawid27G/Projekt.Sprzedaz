@@ -1,19 +1,15 @@
 ---
-title: "Raport - Anliza danych Superstore"
-author: "Dawid Genert, Agnieszka Ancypo, Sylwia Bech"
+title: "Vignette Title"
+author: "Vignette Author"
 date: "`r Sys.Date()`"
-output:
-  rmdformats::readthedown:
-    highlight: kate
-    toc_depth: 3
-    toc_float: true
-      
-editor_options: 
-  markdown: 
-    wrap: 72
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -37,55 +33,32 @@ library(finalfit)
 library(plotly)
 library(corrplot)
 library(Hmisc)
-library(ggstatsplot)
+
 
   dane <- read_excel("superstore.xls", sheet = 1)
   dane_disc <- read_excel("superstore.xls", sheet = 2)
 ```
 
-# 1. Wprowadzenie
-
-Celem niniejszego projektu jest analiza zbioru danych "Superstore",
-zawierającego informacje o transakcjach detalicznych w sieci sklepów.
-Zbiór obejmuje dane o sprzedaży, zyskach, kategoriach produktów oraz
-lokalizacji klientów na terenie USA.
-
-Główne pytania badawcze:
-
-1.  Jaki wpływ mają rabaty na zysk - czy większy rabat zawsze zwiększa
-    sprzedaż kosztem rentowności?
-
-2.  Które kategorie i podkategorie produktów generują najwyższą
-    sprzedaż, a które najwyższy zysk?
-
-3.  Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej)
-    rentowności?
-
-4.  Jak zmieniały się sprzedaż i zysk w czasie - czy występuje
-    sezonowość?
-
-5.  Które produkty lub podkategorie generują straty i jakie czynniki
-    (rabat, region, wysyłka) na to wpływają?
-
-# 2. Data Cleansing & Data Wrangling
-
-Proces przygotowania danych był wieloetapowy, aby zapewnić najwyższą
-jakość analizy.
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r setup, include = FALSE}
+# Pytania badawcze: 
+#Jaki wpływ mają rabaty na zysk - czy większy rabat zawsze zwiększa sprzedaż kosztem rentowności?
+#Które kategorie i podkategorie produktów generują najwyższą sprzedaż, a które najwyższy zysk?
+#Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?
+#Jak zmieniały się sprzedaż i zysk w czasie - czy występuje sezonowość?
+#Które produkty lub podkategorie generują straty i jakie czynniki (rabat, region, wysyłka) na to wpływają?
 
 miss_var_summary(dane)
 miss_case_summary(dane)
 vis_miss(dane)
 gg_miss_var(dane) +
-  labs(title = "Liczba braków danych w każdej zmiennej")
+labs(title = "Liczba braków danych w każdej zmiennej")
 gg_miss_case(dane) +
-  labs(title = "Braki danych w poszczególnych wierszach")
+labs(title = "Braki danych w poszczególnych wierszach")
 gg_miss_upset(dane)
 miss_var_summary(dane)
 ```
 
-```{r include=FALSE}
+```{r setup, include = FALSE}
 
 
 
@@ -227,30 +200,7 @@ md.pattern(dane)
 head(dane)
 ```
 
--   **Identyfikacja braków:** Wykryto braki danych w kluczowych
-    zmiennych takich jak Discount (20%), Profit (11%) oraz danych
-    adresowych.
-
--   **Imputacja danych numerycznych:** Zastosowano zaawansowany algorytm
-    MICE (Multivariate Imputation by Chained Equations) z metodą PMM
-    (Predictive Mean Matching). Pozwala to na uzupełnienie braków w
-    oparciu o korelacje z innymi zmiennymi, co jest bardziej precyzyjne
-    niż użycie średniej.
-
--   **Hot-deck Imputation:** Dla zmiennych kategorycznych (np. Ship
-    Mode) użyto metody hot-deck, losując wartości z istniejącego
-    rozkładu wewnątrz grup (Region/Segment).
-
--   Braki w nazwach miast i stanów uzupełniono na podstawie kodów
-    pocztowych (Postal Code), wykorzystując relacje przestrzenne w
-    danych.
-
--   Brakujące daty wysyłki wyliczono na podstawie mediany czasu dostawy
-    dla danego trybu wysyłki i regionu.
-
-# 3. Wizualicje danych
-
-```{r, include = FALSE}
+```{r setup, include = FALSE}
 df <- dane %>%
   mutate(
     `Order Date` = as.Date(`Order Date`),
@@ -466,303 +416,8 @@ for (i in 2:n) {
 }
 ```
 
-# 4. Analiza opisowa
-
-Analiza opisowa pozwala zrozumieć podstawowe cechy zbioru danych za
-pomocą miar statystycznych, takich jak średnia, mediana czy odchylenie
-standardowe. W tym rozdziale przedstawiono szczegółowe statystyki dla
-wybranych zmiennych, co stanowi podstawę do dalszej analizy.
-
-Rozkład sprzedaży charakteryzuje się silną asymetrią prawostronną – aż
-60% transakcji (ok. 6 tys.) generuje sprzedaż w najniższym przedziale
-(0-100 USD). W związku z tym, klasyczny podział na równe przedziały
-byłby nieefektywny. Zastosowanie algorytmu Natural Breaks (Jenks)
-pozwoliło na optymalne wyznaczenie granic klas, co potwierdza wysoka
-wartość wskaźnika TAI.
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-library(classInt)
-library(frequency)
-library(kableExtra)
-# Przygotowanie przedziałów dla Sales
-etykiety <- c("0-100", "100-500", "500-1000", "1000-5000", "5000+")
-limity <- cut(dane$Sales, 
-              breaks = c(0, 100, 500, 1000, 5000, max(dane$Sales)), 
-              labels = etykiety)
-
-# Tabela częstości
-tabela_sales <- freq(limity)
-
-
-```
-
-NIE WYCHODZI MI TAI TEST
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-kbl(tabela_sales, caption = "Tabela 1. Rozkład sprzedaży w Superstore (USD)") %>%
-  kable_material(c("striped", "hover"))
-
-# Test TAI metodą Jenksa
-tab1_tai <- classIntervals(dane$Sales, n = 5, style = "fixed",
-                           fixedBreaks = c(0, 100, 500, 1000, 5000, max(dane$Sales)))
-tai_wynik <- jenks.tests(tab1_tai)
-```
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-library(psych)
-library(kableExtra)
-library(dplyr)
-
-# 1. Obliczamy statystyki
-desc_stats <- describe(dane[, c("Sales", "Profit", "Discount", "Quantity")])
-
-# 2. Tworzymy tabelę, ignorując błędy konwersji i RĘCZNIE dodając nazwy
-stats_df <- as.data.frame(as.matrix(desc_stats)) %>%
-  select( mean, sd, median, min, max, skew, kurtosis)
-
-# 3. Dodajemy kolumnę z nazwami na sztywno
-stats_df <- cbind(Zmienna = c("Sales", "Profit", "Discount", "Quantity"), stats_df)
-
-# 4. Wyświetlamy tabelę
-stats_df %>%
-  kbl(digits = 2, 
-      row.names = FALSE,  # To wyłączy te brzydkie numery typu 10331
-      caption = "Tabela 2. Charakterystyka statystyczna kluczowych zmiennych",
-      col.names = c("Zmienna", "Średnia", "Odch. std.", "Mediana", "Min", "Max", "Skośność", "Kurtoza")) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
-                full_width = F, position = "center") %>%
-  column_spec(1, bold = T, color = "white", background = "#2c3e50") %>%
-  row_spec(0, background = "#2c3e50", color = "white", bold = T)
-```
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-# Grupowanie i analiza rentowności
-cat_profitability <- dane %>%
-  group_by(Category) %>%
-  summarise(
-    Transakcje = n(),
-    `Śr. Sprzedaż` = mean(Sales),
-    `Śr. Zysk` = mean(Profit),
-    `Śr. Rabat` = mean(Discount),
-    `Łączny Zysk` = sum(Profit)
-  )
-
-# Tabela z heatmapą kolorystyczną dla zysku
-cat_profitability %>%
-  kbl(digits = 2, caption = "Tabela 2. Porównanie efektywności w segmentach produktowych") %>%
-  kable_paper("striped", full_width = F) %>%
-  column_spec(4, bold = T, color = "white", 
-              background = spec_color(cat_profitability$`Śr. Zysk`, option = "D")) %>%
-  column_spec(6, bold = T, color = "black", background = "#f9f9f9") %>%
-  add_header_above(c(" " = 2, "Miary średnie" = 3, "Wynik końcowy" = 1))
-```
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-# Statystyki zysku wg kategorii
-profit_by_cat <- dane %>%
-  group_by(Category) %>%
-  summarise(
-    N = n(),
-    `Średni Zysk` = mean(Profit),
-    Mediana = median(Profit),
-    `Odch. std.` = sd(Profit),
-    `Suma Zysku` = sum(Profit)
-  )
-
-kbl(profit_by_cat, digits = 2, caption = "Tabela 2. Porównanie rentowności kategorii produktów") %>%
-  kable_paper("striped", full_width = F) %>%
-  column_spec(2, color = "white", background = "#34495e") %>%
-  column_spec(6, bold = T, color = "white", 
-              background = spec_color(profit_by_cat$`Suma Zysku`, option = "D"))
-```
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-library(dplyr)
-library(kableExtra)
-library(psych)
-
-# 1. Przygotowanie danych z podziałem na Kategorię i Region
-reg_cat_summary <- dane %>% 
-  group_by(Category, Region) %>%
-  summarise(
-    N = n(),
-    Średnia = mean(Profit),
-    Mediana = median(Profit),
-    `Suma Zysku` = sum(Profit),
-    Skośność = skew(Profit),
-    .groups = "drop"
-  )
-
-# 2. Generowanie tabeli
-reg_cat_summary %>%
-  select(-Category) %>% # Usuwamy kolumnę Category, bo zrobimy z niej nagłówki sekcji
-  kbl(digits = 2, 
-      caption = "Tabela 3. Analiza zysku w podziale na Kategorie i Regiony",
-      col.names = c("Region", "N", "Średnia", "Mediana", "Suma Zysku", "Skośność")) %>%
-  kable_paper("striped", full_width = F) %>%
-  # Dodajemy kolorowanie dla Sumy Zysku (kolumna 5 w tabeli po usunięciu Category)
-  column_spec(5, bold = T, color = "white", 
-              background = spec_color(reg_cat_summary$`Suma Zysku`, option = "D")) %>%
-  # Grupowanie wierszy według Kategorii
-  pack_rows("Furniture", 1, 4) %>%
-  pack_rows("Office Supplies", 5, 8) %>%
-  pack_rows("Technology", 9, 12) %>%
-  # Estetyka nagłówka
-  row_spec(0, background = "#2c3e50", color = "white", bold = T)
-
-```
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-library(ggridges)
-library(ggplot2)
-
-ggplot(dane, aes(x = Profit, y = Region, fill = Region)) +
-  geom_density_ridges(alpha = 0.6, scale = 1.5) +
-  scale_x_continuous(limits = c(-200, 500)) + # Skupiamy się na "ciekawym" przedziale
-  theme_ridges() + 
-  theme(legend.position = "none") +
-  labs(title = "Rozkład zysku w podziale na Regiony",
-     
-       x = "Zysk ($)", y = "Region")
-```
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-summary_stats <- dane %>%
-  summarise(
-    Średnia_Sprzedaż = mean(Sales, na.rm = TRUE),
-    Mediana_Sprzedaż = median(Sales, na.rm = TRUE),
-    SD_Sprzedaż = sd(Sales, na.rm = TRUE),
-    Średnia_Zysk = mean(Profit, na.rm = TRUE),
-    Mediana_Zysk = median(Profit, na.rm = TRUE),
-    SD_Zysk = sd(Profit, na.rm = TRUE),
-    Liczba_Transakcji = n()
-  )
-```
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-# Statystyki zysku wg regionu
-profit_by_region <- dane %>%
-  group_by(Region) %>%
-  summarise(
-    N = n(),
-    `Średni Zysk` = mean(Profit),
-    Mediana = median(Profit),
-    `Odch. std.` = sd(Profit),
-    `Suma Zysku` = sum(Profit)
-  )
-kbl(profit_by_region, digits = 2, caption = "Tabela 3. Porównanie rentowności wg regionów") %>%
-  kable_paper("striped", full_width = F) %>%
-  column_spec(2, color = "white", background = "#34495e") %>%
-  column_spec(6, bold = T, color = "white", 
-              background = spec_color(profit_by_region$`Suma Zysku`, option = "D"))
-
-```
-
-Wstępna analiza opisowa danych "Superstore" ujawniła kilka kluczowych
-spostrzeżeń: - **Sprzedaż i zysk:** Średnia sprzedaż na transakcję
-wynosiła około 230 USD, podczas gdy średni zysk to około 28 USD.
-Jednakże rozkład zysków jest silnie skośny, z wieloma transakcjami
-generującymi straty. - **Kategorie produktów:** Elektronika i meble
-generowały najwyższą sprzedaż, ale to artykuły biurowe miały najwyższą
-marżę zysku. - **Regiony:** Region Zachodni miał najwyższą sprzedaż, ale
-również największą liczbę transakcji przynoszących straty.
-
-Te wstępne obserwacje stanowią podstawę do dalszych analiz
-statystycznych i modelowania, które pozwolą lepiej zrozumieć czynniki
-wpływające na wyniki sprzedażowe i finansowe sieci sklepów.
-
-# 5. Wnioskowanie statystyczne
-
-W niniejszym rozdziale zweryfikowano hipotezy badawcze dotyczące
-kluczowych wyników sprzedażowych i finansowych. Celem analizy jest
-sprawdzenie, czy zależności zauważone w danych (np. wpływ rabatów na
-zysk czy różnice między regionami) są istotne statystycznie, czy
-wynikają jedynie z przypadku. W procesie badawczym wykorzystano testy
-statystyczne dobrane do rodzaju danych (ilościowych i jakościowych). Dla
-wszystkich testów przyjęto poziom istotności $\alpha = 0,05$. Wynik
-$p < 0,05$ uznawano za dowód na istnienie statystycznie istotnej
-zależności.
-
-## 5.1. Korelacja Pearsona
-
-Poniższa analiza sprawdza wpływ polityki rabatowej na rentowność
-sprzedaży.
-
-**H0:** Nie istnieje statystycznie istotna zależność między wysokością
-rabatu a zyskiem.
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
- test_kor <- cor.test(dane$Discount, dane$Profit, method = "pearson")
-
-#wykres regresji
-ggscatterstats(
-  data = dane, ## data frame from which variables are taken
-  x = "Discount",  
-  y = "Profit", 
-  xlab = "Rabat", 
-  ylab = "Zysk ($)", 
-  
-  ggtheme = theme_classic() + theme(
-    panel.grid = element_blank(),      # Usuwa siatkę
-    
-    axis.ticks = element_blank()       # Usuwa te małe kreski przy osiach
-  ),
-  
-  # Opcje wizualne
-  point.args = list(alpha = 0.6, size = 3, color = "grey40"),
-  xfill = "#CC79A7", 
-  yfill = "#009E73"
-)
-
-```
-
-Analiza korelacji r-Pearsona wykazała istnienie statystycznie istotnej,
-ujemnej zależności pomiędzy wysokością udzielonego rabatu a generowanym
-zyskiem. Oznacza to, że zwiększanie poziomu rabatów wiąże się ze
-spadkiem zysku ze sprzedaży. Choć siła tego związku jest słaba
-($r = -0.22$), wynik jest wysoce istotny statystycznie ze względu na
-dużą liczebność próby, co potwierdza negatywny wpływ obecnej polityki
-rabatowej na marżowość. Choć rabaty mają na celu stymulowanie sprzedaży,
-dane pokazują, że przekroczenie progu 20-30% rabatu w większości
-przypadków prowadzi do nieodwracalnej utraty rentowności transakcji.
-
-5.2
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-# Model regresji
-
-model_discount <- lm(Profit ~ Discount, data = dane)
-summary(model_discount)
-
-
-# Poprawiony wykres regresji
-ggplot(dane, aes(x = Discount, y = Profit)) +
-  stat_bin2d(bins = 30) +
-  scale_fill_gradient(low = "lightblue", high = "red") +
-  geom_smooth(method = "lm", color = "white", se = TRUE) +
-  labs(
-    title = "Gęstość relacji: Rabat vs Zysk",
-    x = "Rabat",
-    y = "Zysk ($)",
-    fill = "Liczba transakcji"
-  ) +
-  theme_minimal()
-```
-
-## 5.1. Test ANOVA - Czy średni zysk różni się między kategoriami produktów?
-
-#wizualizacje przykładowe
-
 ```{r}
 # analiza według kategorii
-category_stats <- dane %>%
-  group_by(Category) %>%
-  summarise(
-    liczba_zamówień = n(),
-    średni_zysk = mean(Profit, na.rm = TRUE),
-    suma_sprzedaży = sum(Sales, na.rm = TRUE),
-    .groups = "drop"
-  )
 ggplot(category_stats, aes(x = liczba_zamówień, y = średni_zysk, size = suma_sprzedaży, color = Category)) +
   geom_point(alpha = 0.6) + 
   geom_text(aes(label = Category), vjust = -2, size = 4) +
@@ -917,17 +572,17 @@ barplot(discount_analysis$profit_share,
         col = "steelblue",
         las = 1)
 #rabat a wartosc zamowienia
-plot(1:nrow(discount_analysis), discount_analysis$avg_sales,
-     type = "b", col = "darkblue", lwd = 2,
-     main = "Rabat vs średnia wartość zakupu",
-     xlab = "Grupa rabatu", ylab = "Śr. wartość zakupu ($)",
-     xaxt = "n",
-     ylim = c(0, max(discount_analysis$avg_sales) * 1.1))
-axis(1, at = 1:nrow(discount_analysis), labels = discount_analysis$discount_group)
-abline(h = mean(df$Sales, na.rm = TRUE), col = "gray", lty = 2)
-text(x = nrow(discount_analysis)/2, y = mean(df$Sales, na.rm = TRUE) * 0.95,
-     labels = paste("Średnia globalna: $", round(mean(df$Sales, na.rm = TRUE), 2)),
-     cex = 0.8, col = "gray")
+ plot(1:nrow(discount_analysis), discount_analysis$avg_sales,
+       type = "b", col = "darkblue", lwd = 2,
+       main = "Rabat vs średnia wartość zakupu",
+       xlab = "Grupa rabatu", ylab = "Śr. wartość zakupu ($)",
+       xaxt = "n",
+       ylim = c(0, max(discount_analysis$avg_sales) * 1.1))
+  axis(1, at = 1:nrow(discount_analysis), labels = discount_analysis$discount_group)
+  abline(h = mean(df$Sales, na.rm = TRUE), col = "gray", lty = 2)
+  text(x = nrow(discount_analysis)/2, y = mean(df$Sales, na.rm = TRUE) * 0.95,
+       labels = paste("Średnia globalna: $", round(mean(df$Sales, na.rm = TRUE), 2)),
+       cex = 0.8, col = "gray")
 par(mfrow = c(1, 1))
 ```
 
@@ -945,21 +600,18 @@ subcategory_analysis <- df %>%
   ) %>%
   filter(total_sales > 0) %>%
   arrange(desc(total_sales))
-top_profit_subcat <- subcategory_analysis %>%
-  arrange(desc(total_profit)) %>%
-  head(5)
 
 if(nrow(subcategory_analysis) > 0) {
   top_sales_subcat <- head(subcategory_analysis, 5)
   for(i in 1:nrow(top_sales_subcat)) 
-    par(mfrow = c(1, 2), mar = c(7, 4, 3, 1))
+  par(mfrow = c(1, 2), mar = c(7, 4, 3, 1))
   barplot(top_sales_subcat$total_sales/1000,
           names.arg = top_sales_subcat$`Sub-Category`,
           main = "Top 5 - Sprzedaż",
           ylab = "Tys. $",
           col = "steelblue",
           las = 2)
-  
+
   barplot(top_profit_subcat$total_profit/1000,
           names.arg = top_profit_subcat$`Sub-Category`,
           main = "Top 5 - Zysk",
@@ -993,7 +645,7 @@ plot(region_summary$sprzedaż, region_summary$marża,
      pch = 19,
      cex = rozmiar / 3,
      col = ifelse(region_summary$marża >= 15, "green",
-                  ifelse(region_summary$marża >= 10, "orange", "red")),
+                 ifelse(region_summary$marża >= 10, "orange", "red")),
      main = "Regiony: Sprzedaż vs Marża",
      xlab = "Sprzedaż (tys. $)",
      ylab = "Marża (%)",
@@ -1020,7 +672,7 @@ for(i in 1:nrow(region_summary)) {
 barplot(region_summary$marża,
         names.arg = region_summary$Region,
         col = ifelse(region_summary$marża >= 15, "darkgreen",
-                     ifelse(region_summary$marża >= 10, "orange", "red")),
+                    ifelse(region_summary$marża >= 10, "orange", "red")),
         main = "Marża wg regionu",
         ylab = "Marża (%)",
         las = 1)
@@ -1187,3 +839,4 @@ if(nrow(loss_products) > 0) {
 }
 par(mfrow = c(1, 1))
 ```
+
