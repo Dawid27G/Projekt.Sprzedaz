@@ -13,3 +13,10 @@
 
 *.png
 *.csv
+
+# RStudio project files
+*.Rproj
+.Rproj.user/
+
+# personal / local files
+markdown z moimi zmianami.rmd
