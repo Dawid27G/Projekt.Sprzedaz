@@ -1,0 +1,421 @@
+---
+title: "Vignette Title"
+author: "Vignette Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+pkgs <- c("readxl","dplyr","mice","lubridate")
+to_install <- pkgs[!pkgs %in% installed.packages()[, "Package"]]
+if (length(to_install)) install.packages(to_install)
+
+library(readxl)
+library(dplyr)
+library(mice)
+library(lubridate)
+library(tidyverse)
+library(validate)
+library(tidyselect)
+library(ggplot2)
+library(naniar)
+library(tidyr)
+library(finalfit) 
+library(plotly)
+library(corrplot)
+library(Hmisc)
+
+
+  dane <- read_excel("superstore.xls", sheet = 1)
+  dane_disc <- read_excel("superstore.xls", sheet = 2)
+```
+
+  ```{r setup, include = FALSE}
+# Pytania badawcze: 
+#Jaki wpływ mają rabaty na zysk - czy większy rabat zawsze zwiększa sprzedaż kosztem rentowności?
+#Które kategorie i podkategorie produktów generują najwyższą sprzedaż, a które najwyższy zysk?
+#Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?
+#Jak zmieniały się sprzedaż i zysk w czasie - czy występuje sezonowość?
+#Które produkty lub podkategorie generują straty i jakie czynniki (rabat, region, wysyłka) na to wpływają?
+
+miss_var_summary(dane)
+miss_case_summary(dane)
+vis_miss(dane)
+gg_miss_var(dane) +
+  labs(title = "Liczba braków danych w każdej zmiennej")
+gg_miss_case(dane) +
+  labs(title = "Braki danych w poszczególnych wierszach")
+gg_miss_upset(dane)
+miss_var_summary(dane)
+```
+
+```{r setup, include = FALSE}
+
+
+
+dane <- read_xls("superstore.xls", sheet = 1)
+md.pattern(dane)
+
+dane <- dane %>%
+  mutate(
+    `Order Date` = as.Date(`Order Date`),
+    `Ship Date`  = as.Date(`Ship Date`)
+  )
+
+
+hotdeck_grouped <- function(x, group_df) {
+  out <- x
+  g <- interaction(group_df, drop = TRUE)
+
+  for (lv in levels(g)) {
+    idx <- which(g == lv)
+    vals <- x[idx]
+    miss <- is.na(vals)
+
+    if (any(miss) && any(!miss)) {
+      out[idx][miss] <- sample(vals[!miss], sum(miss), replace = TRUE)
+    }
+  }
+
+
+  if (any(is.na(out)) && any(!is.na(out))) {
+    out[is.na(out)] <- sample(out[!is.na(out)], sum(is.na(out)), replace = TRUE)
+  }
+
+  out
+}
+
+cat_vars <- c("Ship Mode","Segment","Region","Category","Sub-Category")
+cat_vars <- intersect(cat_vars, names(dane))
+
+group_vars <- c("Region","Segment")
+group_vars <- intersect(group_vars, names(dane))
+
+set.seed(123)
+for (v in cat_vars) {
+  dane[[v]] <- hotdeck_grouped(dane[[v]], dane[group_vars])
+}
+
+
+num_vars <- c("Sales","Quantity","Discount","Profit")
+num_vars <- intersect(num_vars, names(dane))
+
+num_df <- dane %>% select(all_of(num_vars))
+
+set.seed(123)
+imp_num <- mice(
+  num_df,
+  m = 5,
+  method = "pmm",
+  maxit = 5,
+  printFlag = FALSE
+)
+
+num_complete <- complete(imp_num, 1)
+
+
+dane[num_vars] <- num_complete
+
+
+if (all(c("Product ID", "Product Name") %in% names(dane))) {
+  lookup_prod <- dane %>%
+    filter(!is.na(`Product ID`), !is.na(`Product Name`)) %>%
+    distinct(`Product ID`, `Product Name`)
+
+  dane <- dane %>%
+    left_join(lookup_prod, by = "Product ID", suffix = c("", ".from_id")) %>%
+    mutate(`Product Name` = ifelse(is.na(`Product Name`), `Product Name.from_id`, `Product Name`)) %>%
+    select(-`Product Name.from_id`)
+}
+
+
+fill_by_key_first <- function(x, key) {
+
+  filled <- ave(x, key, FUN = function(z) {
+    if (all(is.na(z))) return(z)
+    z[is.na(z)] <- z[which(!is.na(z))[1]]
+    z
+  })
+  filled
+}
+
+if ("Postal Code" %in% names(dane)) {
+  if ("City" %in% names(dane))  dane$City  <- fill_by_key_first(dane$City,  dane$`Postal Code`)
+  if ("State" %in% names(dane)) dane$State <- fill_by_key_first(dane$State, dane$`Postal Code`)
+}
+
+
+if ("City" %in% names(dane) && "State" %in% names(dane)) {
+  dane$City <- fill_by_key_first(dane$City, dane$State)
+}
+if ("State" %in% names(dane) && "Region" %in% names(dane)) {
+  dane$State <- fill_by_key_first(dane$State, dane$Region)
+}
+
+if (all(c("Order Date","Ship Date","Ship Mode","Region") %in% names(dane))) {
+  ship_days <- as.integer(dane$`Ship Date` - dane$`Order Date`)
+
+  grp <- interaction(dane$`Ship Mode`, dane$Region, drop = TRUE)
+  med_by_grp <- tapply(ship_days, grp, function(z) median(z, na.rm = TRUE))
+
+  miss_sd <- is.na(dane$`Ship Date`)
+  if (any(miss_sd)) {
+
+    global_med <- median(ship_days, na.rm = TRUE)
+    fill_days <- med_by_grp[as.character(grp[miss_sd])]
+    fill_days[is.na(fill_days)] <- global_med
+
+    dane$`Ship Date`[miss_sd] <- dane$`Order Date`[miss_sd] + as.integer(fill_days)
+  }
+}
+
+for (nm in names(dane)) {
+  if (anyNA(dane[[nm]])) {
+    if (is.numeric(dane[[nm]])) {
+      dane[[nm]][is.na(dane[[nm]])] <- median(dane[[nm]], na.rm = TRUE)
+    } else if (inherits(dane[[nm]], "Date")) {
+      dane[[nm]][is.na(dane[[nm]])] <- median(dane[[nm]], na.rm = TRUE)
+    } else {
+
+      tab <- table(dane[[nm]])
+      moda <- names(tab)[which.max(tab)]
+      dane[[nm]][is.na(dane[[nm]])] <- moda
+    }
+  }
+}
+
+
+stopifnot(sum(is.na(dane)) == 0)
+
+md.pattern(dane)
+head(dane)
+```
+
+```{r setup, include = FALSE}
+df <- dane %>%
+  mutate(
+    `Order Date` = as.Date(`Order Date`),
+    Sales    = as.numeric(Sales),
+    Profit   = as.numeric(Profit),
+    Quantity = as.numeric(Quantity),
+    Discount = as.numeric(Discount),
+    Category = as.character(Category),
+    Segment  = as.character(Segment)
+  )
+m <- df %>%
+  mutate(month = floor_date(`Order Date`, "month")) %>%
+  group_by(month) %>%
+  summarise(
+    Sales = sum(Sales, na.rm = TRUE),
+    Profit = sum(Profit, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(month)
+
+p1 <- plot_ly(m, x = ~month) %>%
+  add_lines(y = ~Sales, name = "Sales") %>%
+  add_lines(y = ~Profit, name = "Profit", yaxis = "y2") %>%
+  layout(
+    title = "Sales & Profit over time (monthly)",
+    xaxis = list(title = ""),
+    yaxis = list(title = "Sales"),
+    yaxis2 = list(title = "Profit", overlaying = "y", side = "right")
+  )
+
+p1
+
+agg <- df %>%
+  group_by(Category, Segment) %>%
+  summarise(Sales = sum(Sales, na.rm = TRUE), .groups = "drop")
+
+p2 <- plot_ly(
+  data = agg,
+  x = ~Category,
+  y = ~Sales,
+  color = ~Segment,
+  type = "bar"
+) %>%
+  layout(
+    title = "Sales by Category and Segment",
+    barmode = "stack",
+    yaxis = list(title = "Sales")
+  )
+
+p2
+
+df_sc <- df %>%
+  filter(!is.na(Sales), !is.na(Profit)) %>%
+  mutate(Quantity = ifelse(is.na(Quantity), 0, Quantity))
+
+p3 <- plot_ly(
+  data = df_sc,
+  x = ~Sales,
+  y = ~Profit,
+  type = "scatter",
+  mode = "markers",
+  color = ~Category,
+  size = ~Quantity,
+  sizes = c(6, 45),
+  text = ~paste0(
+    "Product: ", `Product Name`,
+    "<br>Sub-Category: ", `Sub-Category`,
+    "<br>State: ", State,
+    "<br>Discount: ", Discount
+  ),
+  hoverinfo = "text"
+) %>%
+  layout(
+    title = "Sales vs Profit",
+    xaxis = list(title = "Sales (log)", type = "log"),
+    yaxis = list(title = "Profit")
+  )
+
+p3
+
+df <- read_excel("superstore.xls") %>%
+  mutate(
+    Sales = as.numeric(Sales),
+    Region = as.character(Region),
+    Category = as.character(Category)
+  )
+
+heat <- df %>%
+  group_by(Category, Region) %>%
+  summarise(Sales = sum(Sales, na.rm = TRUE), .groups = "drop")
+
+plot_ly(
+  heat,
+  x = ~Region,
+  y = ~Category,
+  z = ~Sales,
+  type = "heatmap",
+  colors = "Blues"
+) %>%
+  layout(title = "Sales heatmap: Category × Region")
+
+  tree <- df %>%
+  group_by(Category, `Sub-Category`) %>%
+  summarise(Sales = sum(Sales, na.rm = TRUE), .groups = "drop")
+
+plot_ly(
+  tree,
+  labels = ~`Sub-Category`,
+  parents = ~Category,
+  values = ~Sales,
+  type = "treemap"
+) %>%
+  layout(title = "Treemap: Sales by Category and Sub-Category")
+
+  plot_ly(
+  df,
+  x = ~Segment,
+  y = ~Profit,
+  type = "violin",
+  box = list(visible = TRUE),
+  meanline = list(visible = TRUE)
+) %>%
+  layout(
+    title = "Profit distribution by Segment",
+    yaxis = list(title = "Profit")
+  )
+
+  plot_ly(
+  df,
+  x = ~Discount,
+  type = "histogram",
+  nbinsx = 20
+) %>%
+  layout(
+    title = "Distribution of Discount",
+    xaxis = list(title = "Discount"),
+    yaxis = list(title = "Count")
+  )
+
+  top_states <- df %>%
+  group_by(State) %>%
+  summarise(Profit = sum(Profit, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(Profit)) %>%
+  slice_head(n = 10)
+
+plot_ly(
+  top_states,
+  x = ~reorder(State, Profit),
+  y = ~Profit,
+  type = "bar"
+) %>%
+  layout(
+    title = "Top 10 States by Profit",
+    xaxis = list(title = "", tickangle = -45),
+    yaxis = list(title = "Profit")
+  )
+
+  area <- df %>%
+  mutate(month = floor_date(`Order Date`, "month")) %>%
+  group_by(month, Category) %>%
+  summarise(Sales = sum(Sales, na.rm = TRUE), .groups = "drop")
+
+plot_ly(
+  area,
+  x = ~month,
+  y = ~Sales,
+  color = ~Category,
+  type = "scatter",
+  mode = "none",
+  stackgroup = "one"
+) %>%
+  layout(
+    title = "Sales over time by Category",
+    yaxis = list(title = "Sales")
+  )
+
+
+
+num_df <- df %>%
+  select(Discount, Quantity, Sales, Profit) %>%
+  mutate(across(everything(), as.numeric)) %>%
+  na.omit()
+
+rc <- rcorr(as.matrix(num_df))
+R <- rc$r
+P <- rc$P
+corrplot(
+  R,
+  type = "lower",
+  method = "color",
+  addCoef.col = "black",
+  number.cex = 0.9,
+  tl.col = "black",
+  tl.srt = 45
+)
+n <- ncol(R)
+
+for (i in 2:n) {
+  for (j in 1:(i-1)) {
+    if (P[i, j] < 0.05) {
+      stars <- ifelse(P[i, j] < 0.001, "***",
+               ifelse(P[i, j] < 0.01, "**", "*"))
+
+      text(
+        x = j,
+        y = n - i + 1 + 0.25,  
+        labels = stars,
+        cex = 1,
+        col = "black"
+      )
+    }
+  }
+}
+```   
+
+
+
+
