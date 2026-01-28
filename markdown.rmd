@@ -1,5 +1,5 @@
 ---
-title: "Raport - Anliza danych Superstore"
+title: "Raport – Analiza danych Superstore"
 author: "Dawid Genert, Agnieszka Ancypo, Sylwia Bech"
 date: "`r Sys.Date()`"
 output:
@@ -13,39 +13,43 @@ editor_options:
     wrap: 72
 ---
 
-```{r, include = FALSE}
+```{r, echo=FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE
 )
 
-pkgs <- c("readxl","dplyr","mice","lubridate")
-to_install <- pkgs[!pkgs %in% installed.packages()[, "Package"]]
-if (length(to_install)) install.packages(to_install)
+pkgs <- c(
+  "readxl","dplyr","mice","lubridate","tidyr","ggplot2","naniar","plotly",
+  "corrplot","Hmisc","ggstatsplot","classInt","kableExtra","psych",
+  "ggridges","frequency"
+)
 
-library(readxl)
-library(dplyr)
-library(mice)
-library(lubridate)
-library(tidyverse)
-library(validate)
-library(tidyselect)
-library(ggplot2)
-library(naniar)
-library(tidyr)
-library(finalfit) 
-library(plotly)
-library(corrplot)
-library(Hmisc)
-library(ggstatsplot)
-library(classInt)
-library(frequency)
-library(kableExtra)
-library(psych)
-library(ggridges)
+miss <- setdiff(pkgs, rownames(installed.packages()))
+if (length(miss)) {
+  stop(
+    "Brakuje pakietów: ", paste(miss, collapse = ", "),
+    "\nZainstaluj je poleceniem z README.md"
+  )
+}
 
-  dane <- read_excel("superstore.xls", sheet = 1)
-  dane_disc <- read_excel("superstore.xls", sheet = 2)
+invisible(lapply(pkgs, library, character.only = TRUE))
+
+dane <- read_excel(file.path("data","superstore.xls"), sheet = 1)
+dane_disc <- read_excel(file.path("data","superstore.xls"), sheet = 2)
+
+df <- dane %>%
+mutate(
+  `Order Date` = as.Date(`Order Date`),
+  Sales    = as.numeric(Sales),
+  Profit   = as.numeric(Profit),
+  Quantity = as.numeric(Quantity),
+  Discount = as.numeric(Discount),
+  Category = as.character(Category),
+  Segment  = as.character(Segment)
+)
 ```
 
 # 1. Wprowadzenie
@@ -92,9 +96,6 @@ miss_var_summary(dane)
 
 ```{r include=FALSE}
 
-
-
-dane <- read_xls("superstore.xls", sheet = 1)
 md.pattern(dane)
 
 dane <- dane %>%
@@ -255,17 +256,8 @@ head(dane)
 
 # 3. Wizualicje danych
 
-```{r, include = FALSE}
-df <- dane %>%
-  mutate(
-    `Order Date` = as.Date(`Order Date`),
-    Sales    = as.numeric(Sales),
-    Profit   = as.numeric(Profit),
-    Quantity = as.numeric(Quantity),
-    Discount = as.numeric(Discount),
-    Category = as.character(Category),
-    Segment  = as.character(Segment)
-  )
+```{r, echo = FALSE}
+
 m <- df %>%
   mutate(month = floor_date(`Order Date`, "month")) %>%
   group_by(month) %>%
@@ -508,6 +500,25 @@ kbl(tabela_sales, caption = "Tabela 1. Rozkład sprzedaży w Superstore (USD)") 
 tab1_tai <- classIntervals(dane$Sales, n = 5, style = "fixed",
                            fixedBreaks = c(0, 100, 500, 1000, 5000, max(dane$Sales)))
 tai_wynik <- jenks.tests(tab1_tai)
+
+x <- dane$Sales
+x <- x[is.finite(x)]
+
+ci <- classIntervals(x, n = 5, style = "jenks")
+br <- ci$brks
+
+# GVF (Goodness of Variance Fit): im bliżej 1, tym lepiej
+sdam <- sum((x - mean(x))^2)
+
+sdcm <- sum(sapply(1:5, function(i) {
+  xi <- x[x >= br[i] & x <= br[i + 1]]
+  if (length(xi) <= 1) return(0)
+  sum((xi - mean(xi))^2)
+}))
+
+gvf <- (sdam - sdcm) / sdam
+gvf
+
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
@@ -724,7 +735,7 @@ rabatowej na marżowość. Choć rabaty mają na celu stymulowanie sprzedaży,
 dane pokazują, że przekroczenie progu 20-30% rabatu w większości
 przypadków prowadzi do nieodwracalnej utraty rentowności transakcji.
 
-5.2
+## 5.2. Regresja liniowa: wpływ rabatu na zysk
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Model regresji
@@ -748,7 +759,7 @@ ggplot(dane, aes(x = Discount, y = Profit)) +
 ```
 
 ## 5.1. Test ANOVA - Czy średni zysk różni się między kategoriami produktów?
-#wizualizacje przykładowe
+# wizualizacje przykładowe
 
 ```{r}
 # analiza według kategorii
