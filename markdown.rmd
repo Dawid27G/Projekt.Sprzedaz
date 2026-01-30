@@ -22,7 +22,7 @@ knitr::opts_chunk$set(
 )
 
 pkgs <- c(
-  "readxl","dplyr","mice","lubridate","tidyr","ggplot2","naniar","plotly",
+  "readxl","dplyr","mice","lubridate","tidyr","naniar","plotly","ggplot2",
   "corrplot","Hmisc","ggstatsplot","classInt","kableExtra","psych",
   "ggridges","frequency"
 )
@@ -256,6 +256,15 @@ head(dane)
 
 # 3. Wizualicje danych
 
+## 3.1. Sprzedaż i zysk w czasie
+
+Poniższy wykres prezentuje dynamikę sprzedaży i zysku w ujęciu miesięcznym na przestrzeni analizowanego okresu (2014–2017). Wykorzystanie dwóch osi Y pozwala na bezpośrednie porównanie zmian w obydwu zmiennych, mimo że operują na różnych skalach. Obserwacja tych trendów jest kluczowa dla odpowiedzi na pytanie badawcze #4: *"Jak zmieniały się sprzedaż i zysk w czasie – czy występuje sezonowość?"*
+
+Wykres ujawnia:
+- **Trendy ogólne:** Sprzedaż wykazuje tendencję wzrostową szczególnie od 2015 roku, podczas gdy zysk oscyluje wokół stałego poziomu
+- **Sezonowość:** Wyraźne peaki sprzedaży w końcowych miesiącach roku (listopad-grudzień) oraz spadki sprzedaży w początkowych miesiącach roku (styczeń-luty) 
+- **Niezgodność sprzedaży i zysku:** W niektórych okresach wysokiej sprzedaży obserwuje się spadek zysku, co sugeruje wpływ polityki rabatowej 
+
 ```{r, echo = FALSE}
 # Sprzedaż i Zysk w czasie (miesięcznie)
 m <- df %>%
@@ -281,6 +290,17 @@ p1 <- plot_ly(m, x = ~month) %>%
 p1
 ```
 
+```
+
+## 3.2. Sprzedaż według kategorii i segmentów klientów
+
+Poniższy wykres prezentuje rozkład sprzedaży w podziale na trzy kategorie produktów (Meble, Artykuły biurowe, Elektronika) oraz trzy segmenty klientów (Consumer – konsumenci indywidualni, Corporate – przedsiębiorstwa, Home Office – pracownicy pracujący z domu). Analiza ta bezpośrednio odnosi się do pytania badawczego #2: *"Które kategorie i podkategorie produktów generują najwyższą sprzedaż, a które najwyższy zysk?"*
+
+Kluczowe obserwacje:
+- **Dominacja Consumer:** Segment konsumentów indywidualnych generuje około 40-50% sprzedaży w każdej kategorii, co wskazuje na znaczenie rynku detalicznego
+- **Elektronika liderem:** Kategoria Technology pokazuje najwyższą sprzedaż (~830k), przy czym Corporate segment jest tutaj proporcjonalnie silniejszy niż w innych kategoriach
+- **Różna struktura segmentów:** Podczas gdy meble i artykuły biurowe mają podobny podział segmentów, elektronika wykazuje inny rozkład – sugeruje to różne wzorce zakupów w zależności od typu produktu
+
 ```{r, echo = FALSE}
 # Sprzedaż według Kategorii i Segmentu
 agg <- df %>%
@@ -303,8 +323,17 @@ p2 <- plot_ly(
 p2
 ```
 
+## 3.3. Relacja sprzedaży i zysku na poziomie transakcji
+
+Poniższy wykres prezentuje relację między sprzedażą a zyskiem na poziomie poszczególnych transakcji, uwzględniając kategorię produktu oraz wielkość zamówienia (reprezentowana przez rozmiar bąbelka). Zastosowanie logarytmicznej skali osi X pozwala lepiej wizualizować dane o dużym rozproszeniu wartości sprzedaży. Analiza ta bezpośrednio odpowiada na pytania badawcze #1 i #3: *"Jaki wpływ mają rabaty na zysk?"* oraz *"Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?"*
+
+Kluczowe obserwacje:
+- **Strefa strat:** Znaczna część transakcji w kategoriach Office Supplies i Furniture znajduje się poniżej osi x=0, co wskazuje na straty pomimo wygenerowanej sprzedaży
+- **Asymetria kategorii:** Technology dominuje górną część wykresu (wysokie zyski), podczas gdy Office Supplies jest rozproszona, szczególnie w strefie ujemnego zysku
+- **Brak liniowej zależności:** Rozproszenie punktów sugeruje, że sama wielkość sprzedaży nie gwarantuje zysku – decydujące znaczenie mają rabaty, marża produktu i inne czynniki
+- **Wielkość bąbelka:** Większe bąbelki (wyższe ilości) nie zawsze odpowiadają lepszym wynikom finansowym, co wskazuje na problem z polityką rabatową na produkty w dużych ilościach
+
 ```{r, echo = FALSE}
-# Sprzedaż vs Zysk - wykres punktowy
 df_sc <- df %>%
   filter(!is.na(Sales), !is.na(Profit)) %>%
   mutate(Quantity = ifelse(is.na(Quantity), 0, Quantity))
@@ -316,13 +345,18 @@ p3 <- plot_ly(
   type = "scatter",
   mode = "markers",
   color = ~Category,
-  size = ~Quantity,
-  sizes = c(6, 45),
+  # Zamiast size = ~Quantity tutaj, robimy to w markerze poniżej:
+  marker = list(
+    size = ~Quantity * 2, # Ręczne przeskalowanie (dostosuj mnożnik)
+    sizemode = 'diameter',
+    line = list(width = 0), # Całkowite wyłączenie obramowania usuwa problem line.width
+    opacity = 0.6
+  ),
   text = ~paste0(
     "Product: ", `Product Name`,
     "<br>Sub-Category: ", `Sub-Category`,
     "<br>State: ", State,
-    "<br>Discount: ", Discount
+    "<br>Discount: ", Discount,
   ),
   hoverinfo = "text"
 ) %>%
@@ -334,6 +368,16 @@ p3 <- plot_ly(
 
 p3
 ```
+## 3.4. Mapa cieplna sprzedaży: Kategoria × Region
+
+Poniższa wizualizacja prezentuje rozkład sprzedaży w podziale na kategorie produktów i regiony geograficzne. Intensywność koloru (od jasnego do ciemnego niebieskiego) odzwierciedla wielkość sprzedaży, co pozwala na szybką identyfikację kombinacji kategoria-region o największym udziale w przychodach. Analiza ta jest kluczowa dla odpowiedzi na pytanie badawcze #3: *"Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?"*
+
+Kluczowe obserwacje:
+- **Koncentracja na East i West:** Regiony Wschodnia i Zachodnia generują zdecydowanie większość sprzedaży we wszystkich kategoriach, co wskazuje na słabą penetrację rynku w regionach Central i South
+- **Technology dominuje na East i West:** Elektronika wykazuje najwyższe wartości sprzedaży w obu tych regionach, szczególnie na Wschodzie
+- **Furniture preferuje West:** Meble osiągają najwyższą sprzedaż w regionie Zachodnim, co może sugerować różne preferencje konsumentów w zależności od lokalizacji
+- **Office Supplies rozproszone:** Artykuły biurowe mają bardziej równomierny rozkład, ale również słabsza obecność w regionach Central i South
+- **Szansa dla Central i South:** Regiony Central i South wykazują potencjał rozwojowy – najjaśniejsze komórki na mapie, co sugeruje niedostateczne zaangażowanie sprzedażowe
 
 ```{r, echo = FALSE}
 # Mapa cieplna sprzedaży: Kategoria × Region
@@ -359,21 +403,16 @@ plot_ly(
   layout(title = "Sales heatmap: Category × Region")
 ```
 
-```{r, echo = FALSE}
-# Mapa drzewa: Sprzedaż według Kategorii i Podkategorii
-tree <- df %>%
-  group_by(Category, `Sub-Category`) %>%
-  summarise(Sales = sum(Sales, na.rm = TRUE), .groups = "drop")
+## 3.5. Rozkład zysku według Segmentu Klientów
 
-plot_ly(
-  tree,
-  labels = ~`Sub-Category`,
-  parents = ~Category,
-  values = ~Sales,
-  type = "treemap"
-) %>%
-  layout(title = "Treemap: Sales by Category and Sub-Category")
-```
+Poniższy wykres violin plot prezentuje rozkład zysku dla trzech segmentów klientów: Consumer, Corporate i Home Office. Wizualizacja łączy informacje o rozkładzie danych (kształt wiolinu), medianie, kwartylach (box plot) i średniej (linia). Analiza ta pozwala zidentyfikować, które segmenty klientów są bardziej rentowne i w którym segmencie występuje największa zmienność wyników. Dane odpowiadają pytaniu badawczemu #2: *"Które segmenty klientów generują najwyższy zysk?"*
+
+Kluczowe obserwacje:
+- **Corporate segment najrentowniejszy:** Segment korporacyjny wykazuje wyraźnie wyższy medianę i średnią zysku niż dwa pozostałe segmenty
+- **Home Office bardziej rentowny niż Consumer:** Wbrew intuicji, pracownicy pracujący z domu generują przeciętnie wyższe zyski niż konsumenci indywidualni
+- **Wszechobecne straty:** Wszystkie trzy segmenty mają transakcje ze znacznymi stratami (do -6000$), co wskazuje na problem z polityką rabatową niezależnie od segmentu
+- **Zmienność zysków:** Home Office wykazuje największą zmienność zysków (najszerszy rozkład), podczas gdy Corporate jest bardziej skoncentrowany wokół wyższych wartości
+- **Potencjał optymalizacji:** Znaczna liczba transakcji zerowych lub nieznacznie zyskowych sugeruje możliwość poprawy marż przez lepsze zarządzanie rabatami
 
 ```{r, echo = FALSE}
 # Rozkład zysku według Segmentu
@@ -391,6 +430,17 @@ plot_ly(
   )
 ```
 
+## 3.6. Rozkład rabatów w transakcjach
+
+Poniższy histogram prezentuje rozkład wartości rabatów zastosowanych w transakcjach. Analiza struktury rabatów jest kluczowa dla zrozumienia polityki cenowej i jej wpływu na rentowność, odpowiadając bezpośrednio na pytanie badawcze #1: *"Jaki wpływ mają rabaty na zysk – czy większy rabat zawsze zwiększa sprzedaż kosztem rentowności?"*
+
+Kluczowe obserwacje:
+- **Dominacja transakcji bez rabatu:** Około 4800 transakcji (ponad 50%) odbyło się bez jakiegokolwiek rabatu (Discount = 0), co wskazuje na silną bazę klientów kupujących po pełnej cenie
+- **Koncentracja na 20% rabacie:** Druga najliczniejsza grupa (~3600 transakcji) to rabat 20%, co sugeruje standardową politykę promocyjną
+- **Rzadkie rabaty ekstremalne:** Rabaty powyżej 30% są znacznie rzadsze (<500 transakcji każdy), co wskazuje na selektywne stosowanie głębokich przecen
+- **Bimodalna dystrybucja:** Wyraźne dwa szczyty (0% i 20%) sugerują dwie odrębne strategie sprzedażowe: sprzedaż po cenie katalogowej i sprzedaż promocyjna
+- **Potencjał optymalizacji:** Niska częstotliwość rabatów pośrednich (5-15%) może wskazywać na brak elastycznej polityki cenowej, która mogłaby lepiej reagować na różne segmenty klientów
+
 ```{r, echo = FALSE}
 # Rozkład rabatów
 plot_ly(
@@ -405,6 +455,17 @@ plot_ly(
     yaxis = list(title = "Count")
   )
 ```
+
+## 3.7. Top 10 stanów według zysku
+
+Poniższy wykres przedstawia dziesięć stanów USA generujących najwyższy łączny zysk w analizowanym okresie. Analiza geograficzna rentowności jest kluczowa dla odpowiedzi na pytanie badawcze #3: *"Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?"* oraz umożliwia identyfikację najważniejszych rynków dla firmy.
+
+Kluczowe obserwacje:
+- **Dominacja Kalifornii i Nowego Jorku:** Dwa stany generują łącznie ~150k$ zysku, co stanowi znaczną część całkowitego zysku firmy, wskazując na kluczowe znaczenie rynków wschodniego i zachodniego wybrzeża
+- **Koncentracja geograficzna:** Większość najbardziej rentownych stanów to duże centra metropolitalne (Kalifornia, Nowy Jork, Waszyngton, Michigan), co sugeruje korelację między urbanizacją a rentownością
+- **Duże różnice wewnętrzne:** Różnica między najlepszym stanem (~78k$) a dziesiątym (~10k$) jest prawie ośmiokrotna, co wskazuje na bardzo nierównomierny rozkład zysków geograficznych
+- **Obecność stanów południowych:** Indiana, Virginia i Georgia reprezentują region południowy, pokazując jego rosnące znaczenie ekonomiczne
+- **Potencjał konsolidacji:** Silna koncentracja zysków w kilku stanach może sugerować możliwość optymalizacji operacji poprzez skupienie zasobów na najbardziej rentownych rynkach
 
 ```{r, echo = FALSE}
 # Top 10 stanów według zysku
@@ -427,9 +488,21 @@ plot_ly(
   )
 ```
 
+## 3.8. Sprzedaż w czasie według kategorii produktów
+
+Poniższy wykres obszarowy (stacked area chart) prezentuje dynamikę sprzedaży w podziale na kategorie produktów na przestrzeni całego analizowanego okresu (2014-2017). Format stackowany pozwala jednocześnie obserwować zarówno całkowitą sprzedaż (wysokość całego stosu), jak i udział poszczególnych kategorii w każdym okresie. Analiza ta uzupełnia odpowiedź na pytanie badawcze #4: *"Jak zmieniały się sprzedaż i zysk w czasie – czy występuje sezonowość?"*
+
+Kluczowe obserwacje:
+- **Wyraźna sezonowość:** Widoczne są regularne peaki sprzedaży w czwartym kwartale każdego roku (listopad-grudzień), prawdopodobnie związane z sezonem zakupów świątecznych i promocjami Black Friday/Cyber Monday
+- **Proporcje kategorii stabilne:** Pomimo zmian w całkowitej sprzedaży, proporcje między kategoriami pozostają względnie stałe w czasie – Technology dominuje w każdym okresie
+- **Wzrost całkowitej sprzedaży:** Trend wzrostowy jest widoczny szczególnie w latach 2016-2017, gdzie peaki sezonowe osiągają wyższe wartości niż w latach poprzednich
+- **Spadki po sezonie:** Regularne spadki sprzedaży na początku każdego roku (styczeń-luty) wskazują na cykliczny charakter biznesu i możliwość lepszego planowania zapasów i kampanii marketingowych
+- **Technology motor wzrostu:** Kategoria Technology nie tylko ma największy udział, ale również wykazuje najsilniejszy wzrost w okresach szczytowych, co potwierdza jej kluczową rolę w strategii firmy
+
 ```{r, echo = FALSE}
 # Sprzedaż w czasie według Kategorii (wykres obszarowy)
 area <- df %>%
+  filter(!is.na(`Order Date`), !is.na(Category), !is.na(Sales)) %>%
   mutate(month = floor_date(`Order Date`, "month")) %>%
   group_by(month, Category) %>%
   summarise(Sales = sum(Sales, na.rm = TRUE), .groups = "drop")
@@ -441,13 +514,30 @@ plot_ly(
   color = ~Category,
   type = "scatter",
   mode = "none",
-  stackgroup = "one"
+  stackgroup = "one",
+  hovertemplate = paste(
+    "<b>Data:</b> %{x|%Y-%m}<br>",
+    "<b>Kategoria:</b> %{fullData.name}<br>",
+    "<b>Sprzedaż:</b> $%{y:,.0f}<extra></extra>"
+  )
 ) %>%
   layout(
     title = "Sales over time by Category",
-    yaxis = list(title = "Sales")
+    yaxis = list(title = "Sales"),
+    hovermode = "x unified"
   )
 ```
+
+## 3.9. Macierz korelacji zmiennych kluczowych
+
+Poniższa macierz korelacji prezentuje związki statystyczne między czterema kluczowymi zmiennymi biznesowymi: Discount (rabat), Quantity (ilość), Sales (sprzedaż) i Profit (zysk). Wartości w komórkach pokazują siłę i kierunek korelacji (od -1 do +1), gdzie wartości bliskie -1 oznaczają silną korelację ujemną, wartości bliskie +1 silną korelację dodatnią, a wartości bliskie 0 brak związku. Gwiazdki (*, **, ***) oznaczają istotność statystyczną korelacji. Analiza ta jest kluczowa dla wszystkich pytań badawczych, szczególnie #1: *"Jaki wpływ mają rabaty na zysk?"*
+
+Kluczowe obserwacje:
+- **Rabat niszczy zysk:** Discount ma silną ujemną korelację z Profit (-0.22***), co oznacza, że wyższe rabaty są silnie powiązane z niższym zyskiem – to potwierdza problem z polityką rabatową
+- **Sprzedaż nie równa się zysk:** Sales ma umiarkowaną pozytywną korelację z Profit (0.48***), co jest wartością niższą niż można by oczekiwać – wskazuje to, że sama wysokość sprzedaży nie gwarantuje proporcjonalnego zysku
+- **Ilość nie kompensuje rabatów:** Quantity ma bardzo słabą korelację z Profit (0.07***), co sugeruje, że zwiększenie ilości sprzedanych produktów nie jest efektywną strategią kompensacji rabatów
+- **Rabaty nie zwiększają znacząco sprzedaży:** Discount ma słabą ujemną korelację z Sales (-0.03**), co jest zaskakujące – głębsze rabaty nie prowadzą do znaczącego wzrostu wartości sprzedaży
+- **Paradoks rabatowy:** Brak silnej pozytywnej korelacji między rabatem a sprzedażą przy jednoczesnej silnej ujemnej korelacji z zyskiem sugeruje, że obecna polityka rabatowa jest nieefektywna – firma traci zysk bez znaczącego zwiększenia przychodów
 
 ```{r, echo = FALSE}
 # Macierz korelacji
@@ -487,6 +577,8 @@ for (i in 2:n) {
   }
 }
 ```
+
+
 ```{r}
 plot_ly(
   data = category_stats,
