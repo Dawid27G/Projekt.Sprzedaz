@@ -1,0 +1,1076 @@
+---
+title: "Raport - Anliza danych Superstore"
+author: "Dawid Genert, Agnieszka Ancypo, Sylwia Bech"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    toc_float: true
+      
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+pkgs <- c("readxl","dplyr","mice","lubridate")
+to_install <- pkgs[!pkgs %in% installed.packages()[, "Package"]]
+if (length(to_install)) install.packages(to_install)
+
+library(readxl)
+library(dplyr)
+library(mice)
+library(lubridate)
+library(tidyverse)
+library(validate)
+library(tidyselect)
+library(ggplot2)
+library(naniar)
+library(tidyr)
+library(finalfit) 
+library(plotly)
+library(corrplot)
+library(Hmisc)
+
+
+  dane <- read_excel("superstore.xls", sheet = 1)
+  dane_disc <- read_excel("superstore.xls", sheet = 2)
+```
+
+# 1. Wprowadzenie
+
+Celem niniejszego projektu jest analiza zbioru danych "Superstore",
+zawierającego informacje o transakcjach detalicznych w sieci sklepów.
+Zbiór obejmuje dane o sprzedaży, zyskach, kategoriach produktów oraz
+lokalizacji klientów na terenie USA.
+
+Główne pytania badawcze:
+
+1.  Jaki wpływ mają rabaty na zysk - czy większy rabat zawsze zwiększa
+    sprzedaż kosztem rentowności?
+
+2.  Które kategorie i podkategorie produktów generują najwyższą
+    sprzedaż, a które najwyższy zysk?
+
+3.  Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej)
+    rentowności?
+
+4.  Jak zmieniały się sprzedaż i zysk w czasie - czy występuje
+    sezonowość?
+
+5.  Które produkty lub podkategorie generują straty i jakie czynniki
+    (rabat, region, wysyłka) na to wpływają?
+
+# 2. Data Cleansing & Wrangling (Metodologia)
+
+Proces przygotowania danych był wieloetapowy, aby zapewnić najwyższą
+jakość analizy.
+
+```{r echo=FALSE}
+
+miss_var_summary(dane)
+miss_case_summary(dane)
+vis_miss(dane)
+gg_miss_var(dane) +
+  labs(title = "Liczba braków danych w każdej zmiennej")
+gg_miss_case(dane) +
+  labs(title = "Braki danych w poszczególnych wierszach")
+gg_miss_upset(dane)
+miss_var_summary(dane)
+```
+
+```{r include=FALSE}
+
+
+
+dane <- read_xls("superstore.xls", sheet = 1)
+md.pattern(dane)
+
+dane <- dane %>%
+  mutate(
+    `Order Date` = as.Date(`Order Date`),
+    `Ship Date`  = as.Date(`Ship Date`)
+  )
+
+
+hotdeck_grouped <- function(x, group_df) {
+  out <- x
+  g <- interaction(group_df, drop = TRUE)
+
+  for (lv in levels(g)) {
+    idx <- which(g == lv)
+    vals <- x[idx]
+    miss <- is.na(vals)
+
+    if (any(miss) && any(!miss)) {
+      out[idx][miss] <- sample(vals[!miss], sum(miss), replace = TRUE)
+    }
+  }
+
+
+  if (any(is.na(out)) && any(!is.na(out))) {
+    out[is.na(out)] <- sample(out[!is.na(out)], sum(is.na(out)), replace = TRUE)
+  }
+
+  out
+}
+
+cat_vars <- c("Ship Mode","Segment","Region","Category","Sub-Category")
+cat_vars <- intersect(cat_vars, names(dane))
+
+group_vars <- c("Region","Segment")
+group_vars <- intersect(group_vars, names(dane))
+
+set.seed(123)
+for (v in cat_vars) {
+  dane[[v]] <- hotdeck_grouped(dane[[v]], dane[group_vars])
+}
+
+
+num_vars <- c("Sales","Quantity","Discount","Profit")
+num_vars <- intersect(num_vars, names(dane))
+
+num_df <- dane %>% select(all_of(num_vars))
+
+set.seed(123)
+imp_num <- mice(
+  num_df,
+  m = 5,
+  method = "pmm",
+  maxit = 5,
+  printFlag = FALSE
+)
+
+num_complete <- complete(imp_num, 1)
+
+
+dane[num_vars] <- num_complete
+
+
+if (all(c("Product ID", "Product Name") %in% names(dane))) {
+  lookup_prod <- dane %>%
+    filter(!is.na(`Product ID`), !is.na(`Product Name`)) %>%
+    distinct(`Product ID`, `Product Name`)
+
+  dane <- dane %>%
+    left_join(lookup_prod, by = "Product ID", suffix = c("", ".from_id")) %>%
+    mutate(`Product Name` = ifelse(is.na(`Product Name`), `Product Name.from_id`, `Product Name`)) %>%
+    select(-`Product Name.from_id`)
+}
+
+
+fill_by_key_first <- function(x, key) {
+
+  filled <- ave(x, key, FUN = function(z) {
+    if (all(is.na(z))) return(z)
+    z[is.na(z)] <- z[which(!is.na(z))[1]]
+    z
+  })
+  filled
+}
+
+if ("Postal Code" %in% names(dane)) {
+  if ("City" %in% names(dane))  dane$City  <- fill_by_key_first(dane$City,  dane$`Postal Code`)
+  if ("State" %in% names(dane)) dane$State <- fill_by_key_first(dane$State, dane$`Postal Code`)
+}
+
+
+if ("City" %in% names(dane) && "State" %in% names(dane)) {
+  dane$City <- fill_by_key_first(dane$City, dane$State)
+}
+if ("State" %in% names(dane) && "Region" %in% names(dane)) {
+  dane$State <- fill_by_key_first(dane$State, dane$Region)
+}
+
+if (all(c("Order Date","Ship Date","Ship Mode","Region") %in% names(dane))) {
+  ship_days <- as.integer(dane$`Ship Date` - dane$`Order Date`)
+
+  grp <- interaction(dane$`Ship Mode`, dane$Region, drop = TRUE)
+  med_by_grp <- tapply(ship_days, grp, function(z) median(z, na.rm = TRUE))
+
+  miss_sd <- is.na(dane$`Ship Date`)
+  if (any(miss_sd)) {
+
+    global_med <- median(ship_days, na.rm = TRUE)
+    fill_days <- med_by_grp[as.character(grp[miss_sd])]
+    fill_days[is.na(fill_days)] <- global_med
+
+    dane$`Ship Date`[miss_sd] <- dane$`Order Date`[miss_sd] + as.integer(fill_days)
+  }
+}
+
+for (nm in names(dane)) {
+  if (anyNA(dane[[nm]])) {
+    if (is.numeric(dane[[nm]])) {
+      dane[[nm]][is.na(dane[[nm]])] <- median(dane[[nm]], na.rm = TRUE)
+    } else if (inherits(dane[[nm]], "Date")) {
+      dane[[nm]][is.na(dane[[nm]])] <- median(dane[[nm]], na.rm = TRUE)
+    } else {
+
+      tab <- table(dane[[nm]])
+      moda <- names(tab)[which.max(tab)]
+      dane[[nm]][is.na(dane[[nm]])] <- moda
+    }
+  }
+}
+
+
+stopifnot(sum(is.na(dane)) == 0)
+
+md.pattern(dane)
+head(dane)
+```
+
+-   **Identyfikacja braków:** Wykryto braki danych w kluczowych
+    zmiennych takich jak Discount (20%), Profit (11%) oraz danych
+    adresowych.
+
+-   **Imputacja danych numerycznych:** Zastosowano zaawansowany algorytm
+    MICE (Multivariate Imputation by Chained Equations) z metodą PMM
+    (Predictive Mean Matching). Pozwala to na uzupełnienie braków w
+    oparciu o korelacje z innymi zmiennymi, co jest bardziej precyzyjne
+    niż użycie średniej.
+
+-   **Hot-deck Imputation:** Dla zmiennych kategorycznych (np. Ship
+    Mode) użyto metody hot-deck, losując wartości z istniejącego
+    rozkładu wewnątrz grup (Region/Segment).
+
+-   Braki w nazwach miast i stanów uzupełniono na podstawie kodów
+    pocztowych (Postal Code), wykorzystując relacje przestrzenne w
+    danych.
+
+-   Brakujące daty wysyłki wyliczono na podstawie mediany czasu dostawy
+    dla danego trybu wysyłki i regionu.
+
+# 3. Wizualicje danych
+
+```{r setup, include = FALSE}
+df <- dane %>%
+  mutate(
+    `Order Date` = as.Date(`Order Date`),
+    Sales    = as.numeric(Sales),
+    Profit   = as.numeric(Profit),
+    Quantity = as.numeric(Quantity),
+    Discount = as.numeric(Discount),
+    Category = as.character(Category),
+    Segment  = as.character(Segment)
+  )
+m <- df %>%
+  mutate(month = floor_date(`Order Date`, "month")) %>%
+  group_by(month) %>%
+  summarise(
+    Sales = sum(Sales, na.rm = TRUE),
+    Profit = sum(Profit, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(month)
+
+p1 <- plot_ly(m, x = ~month) %>%
+  add_lines(y = ~Sales, name = "Sales") %>%
+  add_lines(y = ~Profit, name = "Profit", yaxis = "y2") %>%
+  layout(
+    title = "Sales & Profit over time (monthly)",
+    xaxis = list(title = ""),
+    yaxis = list(title = "Sales"),
+    yaxis2 = list(title = "Profit", overlaying = "y", side = "right")
+  )
+
+p1
+
+agg <- df %>%
+  group_by(Category, Segment) %>%
+  summarise(Sales = sum(Sales, na.rm = TRUE), .groups = "drop")
+
+p2 <- plot_ly(
+  data = agg,
+  x = ~Category,
+  y = ~Sales,
+  color = ~Segment,
+  type = "bar"
+) %>%
+  layout(
+    title = "Sales by Category and Segment",
+    barmode = "stack",
+    yaxis = list(title = "Sales")
+  )
+
+p2
+
+df_sc <- df %>%
+  filter(!is.na(Sales), !is.na(Profit)) %>%
+  mutate(Quantity = ifelse(is.na(Quantity), 0, Quantity))
+
+p3 <- plot_ly(
+  data = df_sc,
+  x = ~Sales,
+  y = ~Profit,
+  type = "scatter",
+  mode = "markers",
+  color = ~Category,
+  size = ~Quantity,
+  sizes = c(6, 45),
+  text = ~paste0(
+    "Product: ", `Product Name`,
+    "<br>Sub-Category: ", `Sub-Category`,
+    "<br>State: ", State,
+    "<br>Discount: ", Discount
+  ),
+  hoverinfo = "text"
+) %>%
+  layout(
+    title = "Sales vs Profit",
+    xaxis = list(title = "Sales (log)", type = "log"),
+    yaxis = list(title = "Profit")
+  )
+
+p3
+
+df <- read_excel("superstore.xls") %>%
+  mutate(
+    Sales = as.numeric(Sales),
+    Region = as.character(Region),
+    Category = as.character(Category)
+  )
+
+heat <- df %>%
+  group_by(Category, Region) %>%
+  summarise(Sales = sum(Sales, na.rm = TRUE), .groups = "drop")
+
+plot_ly(
+  heat,
+  x = ~Region,
+  y = ~Category,
+  z = ~Sales,
+  type = "heatmap",
+  colors = "Blues"
+) %>%
+  layout(title = "Sales heatmap: Category × Region")
+
+  tree <- df %>%
+  group_by(Category, `Sub-Category`) %>%
+  summarise(Sales = sum(Sales, na.rm = TRUE), .groups = "drop")
+
+plot_ly(
+  tree,
+  labels = ~`Sub-Category`,
+  parents = ~Category,
+  values = ~Sales,
+  type = "treemap"
+) %>%
+  layout(title = "Treemap: Sales by Category and Sub-Category")
+
+  plot_ly(
+  df,
+  x = ~Segment,
+  y = ~Profit,
+  type = "violin",
+  box = list(visible = TRUE),
+  meanline = list(visible = TRUE)
+) %>%
+  layout(
+    title = "Profit distribution by Segment",
+    yaxis = list(title = "Profit")
+  )
+
+  plot_ly(
+  df,
+  x = ~Discount,
+  type = "histogram",
+  nbinsx = 20
+) %>%
+  layout(
+    title = "Distribution of Discount",
+    xaxis = list(title = "Discount"),
+    yaxis = list(title = "Count")
+  )
+
+  top_states <- df %>%
+  group_by(State) %>%
+  summarise(Profit = sum(Profit, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(Profit)) %>%
+  slice_head(n = 10)
+
+plot_ly(
+  top_states,
+  x = ~reorder(State, Profit),
+  y = ~Profit,
+  type = "bar"
+) %>%
+  layout(
+    title = "Top 10 States by Profit",
+    xaxis = list(title = "", tickangle = -45),
+    yaxis = list(title = "Profit")
+  )
+
+  area <- df %>%
+  mutate(month = floor_date(`Order Date`, "month")) %>%
+  group_by(month, Category) %>%
+  summarise(Sales = sum(Sales, na.rm = TRUE), .groups = "drop")
+
+plot_ly(
+  area,
+  x = ~month,
+  y = ~Sales,
+  color = ~Category,
+  type = "scatter",
+  mode = "none",
+  stackgroup = "one"
+) %>%
+  layout(
+    title = "Sales over time by Category",
+    yaxis = list(title = "Sales")
+  )
+
+
+
+num_df <- df %>%
+  select(Discount, Quantity, Sales, Profit) %>%
+  mutate(across(everything(), as.numeric)) %>%
+  na.omit()
+
+rc <- rcorr(as.matrix(num_df))
+R <- rc$r
+P <- rc$P
+corrplot(
+  R,
+  type = "lower",
+  method = "color",
+  addCoef.col = "black",
+  number.cex = 0.9,
+  tl.col = "black",
+  tl.srt = 45
+)
+n <- ncol(R)
+
+for (i in 2:n) {
+  for (j in 1:(i-1)) {
+    if (P[i, j] < 0.05) {
+      stars <- ifelse(P[i, j] < 0.001, "***",
+               ifelse(P[i, j] < 0.01, "**", "*"))
+
+      text(
+        x = j,
+        y = n - i + 1 + 0.25,  
+        labels = stars,
+        cex = 1,
+        col = "black"
+      )
+    }
+  }
+}
+```
+
+# 4. Analiza opisowa
+
+# 5. Wnioskowanie statystyczne
+
+## 5.1 Analiza regresji
+
+Pytanie: Jaki wpływ mają rabaty na zysk - czy większy rabat zawsze
+zwiększa sprzedaż kosztem rentowności?
+
+```{r echo=FALSE}
+# Model regresji
+model_discount <- lm(Profit ~ Discount, data = dane)
+summary(model_discount)
+
+
+# Poprawiony wykres regresji
+ggplot(dane, aes(x = Discount, y = Profit)) +
+  stat_bin2d(bins = 30) +
+  scale_fill_gradient(low = "lightblue", high = "red") +
+  geom_smooth(method = "lm", color = "white", se = TRUE) +
+  labs(
+    title = "Gęstość relacji: Rabat vs Zysk",
+    x = "Rabat",
+    y = "Zysk ($)",
+    fill = "Liczba transakcji"
+  ) +
+  theme_minimal()
+
+```
+
+Analiza regresji wykazała silną, ujemną zależność między wysokością
+udzielanych rabatów a wypracowanym zyskiem (p \< 0.05). Każdy punkt
+procentowy rabatu statystycznie obniża marżę operacyjną. Choć rabaty
+mają na celu stymulowanie sprzedaży, dane pokazują, że przekroczenie
+progu 20-30% rabatu w większości przypadków prowadzi do nieodwracalnej
+utraty rentowności transakcji.
+
+## 5.1. Korelacja Spearmana
+
+
+
+Poniższa analiza sprawdza wpływ polityki rabatowej na rentowność
+
+sprzedaży.
+
+
+
+**H0:** Nie istnieje statystycznie istotna zależność między wysokością
+
+rabatu a zyskiem.
+
+```{r}
+
+ggscatterstats(
+
+  data = dane,
+
+  x = Discount,
+
+  y = Profit,
+
+  type = "nonparametric", # Dane nie mają rozkładu normalnego
+
+  xlab = "Wysokość Rabatu",
+
+  ylab = "Zysk ($)",
+
+  title = "Wpływ polityki rabatowej na zysk",
+
+  messages = FALSE,
+
+  point.args = list(alpha = 0.3, size = 2),
+
+  smooth.line.args = list(color = "red", method = "lm")
+
+)
+
+```
+
+Wnioski: Analiza wykazuje istotną statystycznie, ujemną korelację (Spearman rho = -0.54). Oznacza to, że wzrost rabatu drastycznie obniża zysk. Linia regresji pokazuje, że po przekroczeniu progu 20% rabatu, transakcje stają się systematycznie stratne.
+
+
+
+
+
+Analiza korelacji r-Spearmana wykazała istnienie statystycznie istotnej,ujemnej zależności pomiędzy wysokością udzielonego rabatu a generowanym
+
+zyskiem. Oznacza to, że zwiększanie poziomu rabatów wiąże się ze
+
+spadkiem zysku ze sprzedaży. Choć siła tego związku jest słaba
+
+($r = -0.22$), wynik jest wysoce istotny statystycznie ze względu na
+
+dużą liczebność próby, co potwierdza negatywny wpływ obecnej polityki
+
+rabatowej na marżowość. Choć rabaty mają na celu stymulowanie sprzedaży,
+
+dane pokazują, że przekroczenie progu 20-30% rabatu w większości
+
+przypadków prowadzi do nieodwracalnej utraty rentowności transakcji.
+
+
+
+```{r}
+
+# 1. Czy rabat zwiększa sprzedaż? (Spodziewamy się słabej/średniej korelacji dodatniej)
+
+p1 <- ggscatterstats(
+
+  data = dane,
+
+  x = Discount,
+
+  y = Sales,
+
+  type = "nonparametric", # Dane nie mają rozkładu normalnego (Spearman)
+
+  xlab = "Wysokość Rabatu",
+
+  ylab = "Wartość Sprzedaży ($)",
+
+  title = "Rabat a Sprzedaż",
+
+  messages = FALSE
+
+)
+
+
+
+# 2. Czy rabat zabija zysk? (Spodziewamy się silnej korelacji ujemnej)
+
+p2 <- ggscatterstats(
+
+  data = dane,
+
+  x = Discount,
+
+  y = Profit,
+
+  type = "nonparametric",
+
+  xlab = "Wysokość Rabatu",
+
+  ylab = "Zysk ($)",
+
+  title = "Rabat a Zysk",
+
+  messages = FALSE
+
+)
+
+
+
+# Wyświetlamy oba (lub jeden po drugim)
+
+p1
+
+p2
+
+```
+
+
+
+
+
+## 5.2. Regresja liniowa: wpływ rabatu na zysk
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Model regresji
+
+
+
+model_discount <- lm(Profit ~ Discount, data = dane)
+
+summary(model_discount)
+
+
+
+
+
+# Poprawiony wykres regresji
+
+ggplot(dane, aes(x = Discount, y = Profit)) +
+
+  stat_bin2d(bins = 30) +
+
+  scale_fill_gradient(low = "lightblue", high = "red") +
+
+  geom_smooth(method = "lm", color = "white", se = TRUE) +
+
+  labs(
+
+    title = "Gęstość relacji: Rabat vs Zysk",
+
+    x = "Rabat",
+
+    y = "Zysk ($)",
+
+    fill = "Liczba transakcji"
+
+  ) +
+
+  theme_minimal()
+
+```
+
+
+
+
+
+```{r}
+
+ggbetweenstats(
+
+  data = dane,
+
+  x = Category,
+
+  y = Profit,
+
+  type = "nonparametric", # Test Kruskala-Wallisa (odporny na outliery)
+
+  plot.type = "boxviolin",
+
+  title = "Porównanie zysków między kategoriami",
+
+  xlab = "Kategoria",
+
+  ylab = "Zysk ($)",
+
+  pairwise.display = "significant",
+
+  p.adjust.method = "holm",
+
+  messages = FALSE
+
+)
+
+```
+
+Wnioski: Test potwierdza istotne różnice między grupami (p < 0.001).
+
+
+
+Technology (Technologia) jest liderem rentowności.
+
+
+
+Furniture (Meble) wypada najgorzej, mając medianę zysku znacznie niższą od pozostałych, a także dużą liczbę wartości ujemnych (transakcji stratnych).
+
+
+
+
+
+
+
+```{r}
+
+ggcorrmat(
+
+  data = dane,
+
+  cor.vars = c("Sales", "Profit", "Quantity", "Discount"),
+
+  colors = c("#B2182B", "white", "#4D4D4D"),
+
+  title = "Macierz korelacji parametrów sprzedaży"
+
+)
+
+```
+
+Sales vs Profit (0.48): Istnieje dodatnia korelacja, ale nie jest ona idealna (r=0.48), co oznacza, że wysoka sprzedaż nie gwarantuje wysokiego zysku.
+
+
+
+Discount vs Profit (-0.22): Potwierdzenie niszczącego wpływu rabatów na wynik finansowy.
+
+```{r}
+
+library(ggstatsplot)
+
+
+
+ggscatterstats(
+
+  data = dane,
+
+  x = Discount,
+
+  y = Profit,
+
+  type = "nonparametric", # Bo zysk nie ma rozkładu normalnego
+
+  xlab = "Wysokość Rabatu",
+
+  ylab = "Zysk ($)",
+
+  title = "Czy rabaty zabijają zysk?",
+
+  messages = FALSE
+
+)
+
+```
+
+
+
+2.  Które kategorie i podkategorie produktów generują najwyższą
+
+    sprzedaż, a które najwyższy zysk?
+
+
+
+```{r}
+
+# Porównanie Zysku między Kategoriami
+
+ggbetweenstats(
+
+  data = dane,
+
+  x = Category,
+
+  y = Profit,
+
+  type = "nonparametric", # Test Kruskala-Wallisa
+
+  plot.type = "boxviolin", # Połączenie pudełka i skrzypiec (jak u kolegów)
+
+  title = "Rentowność Kategorii Produktów",
+
+  xlab = "Kategoria",
+
+  ylab = "Zysk ($)",
+
+  pairwise.display = "significant", # Pokaż tylko istotne różnice
+
+  p.adjust.method = "holm",
+
+  messages = FALSE
+
+)
+
+```
+
+
+
+3.  Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?
+
+```{r}
+
+# Tworzymy kolumnę Marża %
+
+dane_region <- dane %>% 
+
+  mutate(Margin = (Profit / Sales) * 100)
+
+
+
+ggbetweenstats(
+
+  data = dane_region,
+
+  x = Region,
+
+  y = Margin,
+
+  type = "nonparametric",
+
+  title = "Porównanie Marży Procentowej między Regionami",
+
+  xlab = "Region",
+
+  ylab = "Marża (%)",
+
+  messages = FALSE
+
+)
+
+```
+
+
+
+
+
+
+
+```{r}
+
+# 1. Liczymy p-value (Czy regiony różnią się zyskiem?)
+
+# Używam base R (kruskal.test), bo jest niezawodny
+
+test_stat <- kruskal.test(Profit ~ Region, data = dane)
+
+p_value <- test_stat$p.value
+
+p_napis <- paste0("Test Kruskala-Wallisa: p = ", format.pval(p_value, digits = 3, eps = 0.001))
+
+
+
+# 2. Rysujemy wykres Ridgeline (Górski)
+
+ggplot(dane, aes(x = Profit, y = Region, fill = Region)) +
+
+  
+
+  geom_density_ridges(
+
+    scale = 0.9,           # Jak bardzo górki na siebie zachodzą
+
+    alpha = 0.7,           # Przezroczystość
+
+    quantile_lines = TRUE, # Pokazuje linie kwartyli
+
+    quantiles = 2,         # Pokazuje medianę (środek)
+
+    jittered_points = TRUE, # Dodaje kropki (konkretne zamówienia)
+
+    position = position_points_jitter(width = 0.1, height = 0),
+
+    point_size = 0.5,      # Mniejsze kropki, żeby nie zasłaniały
+
+    point_alpha = 0.2
+
+  ) +
+
+  
+
+  # WAŻNE: Przybliżenie na typowe transakcje (bez tego wykres byłby płaski przez outliery)
+
+  coord_cartesian(xlim = c(-100, 200)) + 
+
+
+
+  labs(title = "Rozkład Zysku w Regionach (Ridgeline)",
+
+       subtitle = p_napis,  # Tu wstawi się wynik testu statystycznego
+
+       x = "Zysk z transakcji ($)",
+
+       y = "Region") +
+
+
+
+  theme_minimal() +
+
+  theme(legend.position = "none") +
+
+  scale_fill_viridis_d() # Ładna paleta kolorów
+
+```
+
+
+
+
+
+```{r}
+
+# 1. Liczymy p-value dla Sprzedaży
+
+test_stat <- kruskal.test(Sales ~ Region, data = dane)
+
+p_value <- test_stat$p.value
+
+p_napis <- paste0("Test Kruskala-Wallisa: p = ", format.pval(p_value, digits = 3, eps = 0.001))
+
+
+
+# 2. Wykres
+
+ggplot(dane, aes(x = Sales, y = Region, fill = Region)) +
+
+  
+
+  geom_density_ridges(
+
+    scale = 0.9,
+
+    alpha = 0.7,
+
+    quantile_lines = TRUE,
+
+    quantiles = 2, # Mediana
+
+    jittered_points = TRUE,
+
+    position = position_points_jitter(width = 0.1, height = 0),
+
+    point_size = 0.5,
+
+    point_alpha = 0.2
+
+  ) +
+
+  
+
+  # WAŻNE: Zoom na typowe zakupy (0-500$), bo te za 5000$ spłaszczą wykres
+
+  coord_cartesian(xlim = c(0, 500)) + 
+
+
+
+  labs(title = "Wartość zamówień w Regionach (Ridgeline)",
+
+       subtitle = p_napis,
+
+       x = "Wartość sprzedaży ($)",
+
+       y = "Region") +
+
+
+
+  theme_minimal() +
+
+  theme(legend.position = "none") +
+
+  scale_fill_viridis_d(option = "magma") # Inna paleta dla odmiany
+
+```
+
+
+
+```{r}
+
+# 1. Liczymy p-value dla Rabatu
+
+test_stat <- kruskal.test(Discount ~ Region, data = dane)
+
+p_value <- test_stat$p.value
+
+p_napis <- paste0("Test Kruskala-Wallisa: p = ", format.pval(p_value, digits = 3, eps = 0.001))
+
+
+
+# 2. Wykres
+
+ggplot(dane, aes(x = Discount, y = Region, fill = Region)) +
+
+  
+
+  geom_density_ridges(
+
+    scale = 0.9,
+
+    alpha = 0.7,
+
+    quantile_lines = TRUE,
+
+    quantiles = 2,
+
+    jittered_points = TRUE,
+
+    # Tu mniejszy jitter, bo rabaty są dyskretne (np. 0.2, 0.3)
+
+    position = position_points_jitter(width = 0.01, height = 0),
+
+    point_size = 0.5,
+
+    point_alpha = 0.2
+
+  ) +
+
+  
+
+  labs(title = "Polityka rabatowa w Regionach",
+
+       subtitle = p_napis,
+
+       x = "Wysokość rabatu (0.2 = 20%)",
+
+       y = "Region") +
+
+
+
+  theme_minimal() +
+
+  theme(legend.position = "none") +
+
+  scale_fill_viridis_d(option = "cividis")
+
+```
+
+
+
+
+
+6. Podsumowanie 
+
+Przeprowadzona analiza pozwala na sformułowanie następujących rekomendacji biznesowych:
+
+
+
+Ograniczenie rabatów: Rabaty powyżej 20% w kategorii Meble są głównym źródłem strat. Należy zrewidować politykę cenową w tym segmencie.
+
+
+
+Fokus na Technologię: Kategoria Technology generuje najwyższą marżę i powinna być priorytetem w kampaniach marketingowych.
+
+
+
+Sezonowość: Należy przygotować zapasy na szczyt sprzedażowy w IV kwartale, pamiętając jednak o kontroli marży w tym okresie.
+
+
