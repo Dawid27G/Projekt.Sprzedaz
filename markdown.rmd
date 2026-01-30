@@ -488,6 +488,14 @@ for (i in 2:n) {
 }
 ```
 ```{r}
+category_stats <- dane %>%
+  group_by(Category) %>%
+  summarise(
+    liczba_zamówień = n(),
+    średni_zysk = mean(Profit, na.rm = TRUE),
+    suma_sprzedaży = sum(Sales, na.rm = TRUE),
+    .groups = "drop"
+  )
 plot_ly(
   data = category_stats,
   x = ~liczba_zamówień,
@@ -499,7 +507,11 @@ plot_ly(
   type = 'scatter',
   mode = 'markers+text',
   text = ~Category,
-  textposition = "top center",
+  textposition = ifelse(category_stats$Category == "Office Supplies", 
+                       "middle left",
+                ifelse(category_stats$Category == "Technology",
+                       "bottom right",
+                       "top center")),
 
   textfont = list(size = 14, color = 'black'),
   
@@ -514,8 +526,7 @@ plot_ly(
     yaxis = list(title = "Średni zysk ($)", range = c(-5, 100)), 
     
     template = "plotly_white",
-    showlegend = TRUE
-  )
+    showlegend = TRUE)
 ```
 
 
