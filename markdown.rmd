@@ -2570,7 +2570,6 @@ korelacje_region %>%
   ) 
 ```
 
-<<<<<<< HEAD
 ### Wnioski:
 
 Wszystkie regiony wykazują istotną statystycznie ujemną korelację między wysokością rabatu a zyskiem, co potwierdza, że wyższe rabaty są związane z niższymi zyskami. Siła tej zależności jest najsilniejsza w regionie South (r = -0,272), a najsłabsza w regionie West (r = -0,150). Regiony Central i East mają bardzo podobną, umiarkowanie ujemną korelację (odpowiednio -0,225 i -0,226).
@@ -2580,8 +2579,7 @@ Wszystkie regiony wykazują istotną statystycznie ujemną korelację między wy
 4. Polityka rabatowa wymaga zróżnicowania regionalnego – np. ograniczenie rabatów w regionie South mogłoby przynieść najszybszą poprawę rentowności, podczas gdy w West można pozwolić na nieco większą elastyczność.
 
 ## Analiza sezonowości dla sprzedaży
-=======
->>>>>>> 731e878f1eebb3af313ddbca56b7a10eb3b588a4
+
 
 ## Analiza sezonowości dla sprzedaży
 ```{r}
@@ -2884,9 +2882,11 @@ ggscatterstats(
 )
 
 ```
+**Silna negatywna zależność między rabatem a zyskiem**
 
-2.  Które kategorie i podkategorie produktów generują najwyższą
-    sprzedaż, a które najwyższy zysk?
+Analiza 11 005 transakcji wykazała **istotną statystycznie ujemną korelację** między wysokością rabatu a zyskiem (ρ = -0,54). Przedział ufności Cl₉₅% [-0,55, -0,52] potwierdza stabilność tej relacji.
+
+**Kluczowy wniosek:** Wyższe rabaty prowadzą do istotnego spadku zysku. Każdy dodatkowy procent rabatu zmniejsza rentowność transakcji.
 
 ```{r echo=FALSE}
 
@@ -2919,9 +2919,15 @@ ggbetweenstats(
 )
 
 ```
+**Technology jest najrentowniejszą kategorią**
 
-3.  Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej)
-    rentowności?
+Test Kruskala-Wallisa wykazał istotne różnice w zyskach między kategoriami (p ≈ 0).  
+- **Technology**: mediana zysku = 27,32 $ – najwyższa  
+- **Furniture**: mediana = 8,19 $  
+- **Office Supplies**: mediana = 7,15 $  
+
+Testy post-hoc potwierdziły, że **Technology generuje istotnie wyższe zyski** niż pozostałe kategorie. Różnica między Furniture a Office Supplies jest minimalna (p = 0,04).
+
 
 ```{r echo=FALSE}
 
@@ -2954,6 +2960,15 @@ ggbetweenstats(
 )
 
 ```
+**Region West ma najwyższą medianę marży**
+
+Test Kruskala-Wallisa potwierdził istotne różnice w marżach między regionami (p ≈ 0):
+- **West**: mediana = 29,0% – najwyższa
+- **East**: mediana = 28,0%
+- **South**: mediana = 26,25%
+- **Central**: mediana = 19,0% – najniższa
+
+**Wniosek:** Region **Central** wymaga poprawy rentowności, podczas gdy **West** i **East** osiągają najlepsze wyniki marżowe.
 
 ```{r echo=FALSE}
 
@@ -3020,6 +3035,14 @@ ggplot(dane, aes(x = Profit, y = Region, fill = Region)) +
   scale_fill_viridis_d() # Ładna paleta kolorów
 
 ```
+**Rozkłady zysków różnią się między regionami**
+
+Test Kruskala-Wallisa potwierdza istotne różnice (p < 0,001).  
+Z wykresu ridgeline wynika:  
+- **West i South** mają bardziej skoncentrowane rozkłady z wyższymi wartościami zysków  
+- **Central i East** wykazują szersze rozkłady, co sugeruje większą zmienność i niższe zyski
+
+**West jest regionem o najwyższej i najbardziej stabilnej rentowności.**
 
 ```{r echo=FALSE}
 
@@ -3084,6 +3107,15 @@ ggplot(dane, aes(x = Sales, y = Region, fill = Region)) +
   scale_fill_viridis_d(option = "magma") # Inna paleta dla odmiany
 
 ```
+**West ma najwyższe i najbardziej stabilne wartości zamówień**
+
+Test Kruskala-Wallisa: p < 0,001 – istotne różnice między regionami.  
+Z wykresu ridgeline:  
+- **West**: najwyższe i najbardziej skoncentrowane wartości sprzedaży  
+- **South i East**: średnie wartości, umiarkowane rozproszenie  
+- **Central**: najniższe wartości zamówień i największe rozproszenie  
+
+**Wniosek:** Region **West** dominuje pod względem zarówno wartości, jak i stabilności transakcji.
 
 ```{r echo=FALSE}
 
@@ -3144,6 +3176,15 @@ ggplot(dane, aes(x = Discount, y = Region, fill = Region)) +
   scale_fill_viridis_d(option = "cividis")
 
 ```
+**Central stosuje najwyższe rabaty, West najniższe**
+
+Test Kruskala-Wallisa: p < 0,001 – istotne różnice w polityce rabatowej.  
+Z wykresu ridgeline:  
+- **Central**: najwyższe i najbardziej zróżnicowane rabaty  
+- **West**: najniższe i najbardziej skoncentrowane rabaty  
+- **South i East**: wartości pośrednie  
+
+**Wniosek:** Agresywna polityka rabatowa w **Central** koreluje z jego słabszą rentownością, podczas niższe rabaty w **West** współgrają z jego lepszymi wynikami finansowymi.
 
 ## 3.11. MODEL ANALITYCZNY: Wpływ rabatów na rentowność i wartość klienta (CLV + Logistic Regression)
 
