@@ -1261,21 +1261,46 @@ Kluczowe obserwacje:
     wyłącznie straty
 
 ```{r, echo = FALSE}
-plot_ly(
+# 1. ANALIZA REGIONÓW - PRZYGOTOWANIE DANYCH
+region_summary <- df %>%
+  group_by(Region) %>%
+  summarise(
+    sprzedaż = sum(Sales, na.rm = TRUE) / 1000,
+    zysk = sum(Profit, na.rm = TRUE) / 1000,
+    marża = mean(Profit / Sales * 100, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(marża)) %>%
+  mutate(
+    kolor = ifelse(marża >= 15, "darkgreen",
+                   ifelse(marża >= 10, "orange", "red")),
+    hover_txt = paste0(
+      "<b>Region:</b> ", Region,
+      "<br><b>Sprzedaż:</b> ", round(sprzedaż, 1), " tys. $",
+      "<br><b>Zysk:</b> ", round(zysk, 1), " tys. $",
+      "<br><b>Marża:</b> ", round(marża, 2), "%"
+    )
+  )
+
+# 2. TWORZENIE WYKRESÓW
+library(plotly)
+library(htmltools)
+
+# Wykres A: Sprzedaż vs Marża (Bąbelkowy)
+p_region_scatter <- plot_ly(
   data = region_summary,
   x = ~sprzedaż,
   y = ~marża,
   type = "scatter",
   mode = "markers+text",
   marker = list(
-    size = ~abs(zysk) * 2,
+    size = ~abs(zysk) * 2, # Wielkość bąbelka zależy od zysku
     color = ~kolor,
     line = list(color = "white", width = 2),
     opacity = 0.7
   ),
   text = ~Region,
   textposition = "top center",
-  textfont = list(size = 12, color = "black"),
   hovertext = ~hover_txt,
   hoverinfo = "text"
 ) %>%
@@ -1283,8 +1308,9 @@ plot_ly(
     title = "Regiony: Sprzedaż vs Marża",
     xaxis = list(title = "Sprzedaż (tys. $)"),
     yaxis = list(title = "Marża (%)"),
-    showlegend = FALSE
+    margin = list(t = 50)
   )
+htmltools::tagList(list(p_region_scatter))
 ```
 
 ### Porównanie marży według regionów
