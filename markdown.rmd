@@ -2601,15 +2601,36 @@ comparison_data <- df %>%
   ) %>%
   filter(!is.na(month)) %>%
   group_by(month, month_num) %>%
-  summarise(
-    avg_sales = mean(Sales, na.rm = TRUE),
-    avg_profit = mean(Profit, na.rm = TRUE),
-    sales_index = (avg_sales / mean(avg_sales, na.rm = TRUE)) * 100,
-    profit_index = (avg_profit / mean(avg_profit, na.rm = TRUE)) * 100,
-    correlation = cor(Sales, Profit, use = "complete.obs"),
-    .groups = "drop"
-  ) %>%
+ summarise(
+  avg_sales = mean(Sales, na.rm = TRUE),
+  avg_profit = mean(Profit, na.rm = TRUE),
+  sales_index = (avg_sales / mean(avg_sales, na.rm = TRUE)) * 100,
+  profit_index = (avg_profit / mean(avg_profit, na.rm = TRUE)) * 100,
+  correlation = cor(Sales, Profit, use = "complete.obs"),
+  p_value = {
+    x <- Sales
+    y <- Profit
+    ok <- complete.cases(x, y)
+    if (sum(ok) > 2) cor.test(x[ok], y[ok])$p.value else NA_real_
+  },
+  .groups = "drop"
+)%>%
   arrange(month_num)
+correlation_table <- comparison_data %>%
+  mutate(
+    correlation_strength = case_when(
+      abs(correlation) >= 0.7 ~ "silna",
+      abs(correlation) >= 0.4 ~ "umiarkowana",
+      abs(correlation) >= 0.2 ~ "słaba",
+      TRUE ~ "bardzo słaba"
+    ),
+    direction = ifelse(correlation > 0, "dodatnia", "ujemna"),  stars = case_when(
+      p_value < 0.001 ~ "***",
+      p_value < 0.01  ~ "**",
+      p_value < 0.05  ~ "*",
+      TRUE ~ ""
+    )
+  )
 p_comparison <- plot_ly(
   data = comparison_data,
   x = ~month
@@ -2664,6 +2685,57 @@ p_comparison <- plot_ly(
       )
     )
   )
+p_correlation_months <- plot_ly(
+  data = correlation_table,
+  x = ~month,
+  y = ~correlation,
+  type = "bar",
+  marker = list(
+    color = ~correlation,
+    colorscale = list(
+      list(0, "red"),
+      list(0.5, "white"),
+      list(1, "blue")
+    ),
+    cmin = -1,
+    cmax = 1,
+    line = list(color = "black", width = 1)
+  ),
+  text = ~paste0("r = ", round(correlation, 3), "<br>", stars),
+  textposition = "outside",
+  hovertemplate = paste(
+    "<b>Miesiąc:</b> %{x}<br>",
+    "<b>Korelacja:</b> %{y:.3f}<br>",
+    "<b>Siła:</b> %{customdata[1]}<br>",
+    "<b>Kierunek:</b> %{customdata[2]}<extra></extra>"
+  ),
+  customdata = ~matrix(c(correlation_strength, direction), ncol = 2)
+) %>%
+  layout(
+    title = list(text = "<b>Korelacja sprzedaż-zysk wg miesięcy</b>", x = 0.05),
+    xaxis = list(title = "Miesiąc", tickangle = -45),
+    yaxis = list(title = "Współczynnik korelacji (r)", range = c(-1, 1)),
+    shapes = list(
+      list(
+        type = "line", xref = "paper", x0 = 0, x1 = 1,
+        yref = "y", y0 = 0, y1 = 0,
+        line = list(color = "gray", width = 2)
+      )
+    )
+  )
+anova_sales_data <- df %>%
+  mutate(
+    month = factor(month(`Order Date`), levels = 1:12, labels = polish_months_short)
+  ) %>%
+  filter(!is.na(month), !is.na(Sales))
+
+if(nrow(anova_sales_data) > 0) {
+  anova_sales_test <- aov(log(Sales + 1) ~ month, data = anova_sales_data)
+  anova_sales_summary <- summary(anova_sales_test)
+  p_value_sales <- anova_sales_summary[[1]]$`Pr(>F)`[1]
+} else {
+  p_value_sales <- NA
+}
 p_correlation_months
   correlation_table %>%
     select(Month = month, Correlation = correlation, Strength = correlation_strength, Direction = direction) %>%
