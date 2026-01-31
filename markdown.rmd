@@ -1620,5 +1620,526 @@ ggplot(dane, aes(x = Discount, y = Profit)) +
   theme_minimal()
 ```
 
-## 5.1. Test ANOVA - Czy średni zysk różni się między kategoriami produktów?
+## 5.1. Korelacja Spearmana
+Poniższa analiza sprawdza wpływ polityki rabatowej na rentowność sprzedaży.
+
+**H0:** Nie istnieje statystycznie istotna zależność między wysokością
+
+rabatu a zyskiem.
+
+```{r}
+
+ggscatterstats(
+
+  data = dane,
+
+  x = Discount,
+
+  y = Profit,
+
+  type = "nonparametric", # Dane nie mają rozkładu normalnego
+
+  xlab = "Wysokość Rabatu",
+
+  ylab = "Zysk ($)",
+
+  title = "Wpływ polityki rabatowej na zysk",
+
+  messages = FALSE,
+
+  point.args = list(alpha = 0.3, size = 2),
+
+  smooth.line.args = list(color = "red", method = "lm")
+
+)
+
+```
+
+Wnioski: Analiza wykazuje istotną statystycznie, ujemną korelację (Spearman rho = -0.54). Oznacza to, że wzrost rabatu drastycznie obniża zysk. Linia regresji pokazuje, że po przekroczeniu progu 20% rabatu, transakcje stają się systematycznie stratne.
+
+
+Analiza korelacji r-Spearmana wykazała istnienie statystycznie istotnej,ujemnej zależności pomiędzy wysokością udzielonego rabatu a generowanym
+
+zyskiem. Oznacza to, że zwiększanie poziomu rabatów wiąże się ze
+
+spadkiem zysku ze sprzedaży. Choć siła tego związku jest słaba
+
+($r = -0.22$), wynik jest wysoce istotny statystycznie ze względu na
+
+dużą liczebność próby, co potwierdza negatywny wpływ obecnej polityki
+
+rabatowej na marżowość. Choć rabaty mają na celu stymulowanie sprzedaży,
+
+dane pokazują, że przekroczenie progu 20-30% rabatu w większości
+
+przypadków prowadzi do nieodwracalnej utraty rentowności transakcji.
+
+
+
+```{r}
+
+# 1. Czy rabat zwiększa sprzedaż? (Spodziewamy się słabej/średniej korelacji dodatniej)
+
+p1 <- ggscatterstats(
+
+  data = dane,
+
+  x = Discount,
+
+  y = Sales,
+
+  type = "nonparametric", # Dane nie mają rozkładu normalnego (Spearman)
+
+  xlab = "Wysokość Rabatu",
+
+  ylab = "Wartość Sprzedaży ($)",
+
+  title = "Rabat a Sprzedaż",
+
+  messages = FALSE
+
+)
+
+
+# 2. Czy rabat zabija zysk? (Spodziewamy się silnej korelacji ujemnej)
+
+p2 <- ggscatterstats(
+
+  data = dane,
+
+  x = Discount,
+
+  y = Profit,
+
+  type = "nonparametric",
+
+  xlab = "Wysokość Rabatu",
+
+  ylab = "Zysk ($)",
+
+  title = "Rabat a Zysk",
+
+  messages = FALSE
+
+)
+
+# Wyświetlamy oba (lub jeden po drugim)
+
+p1
+
+p2
+
+```
+
+
+
+## 5.2. Regresja liniowa: wpływ rabatu na zysk
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Model regresji
+
+model_discount <- lm(Profit ~ Discount, data = dane)
+
+summary(model_discount)
+
+
+# Poprawiony wykres regresji
+
+ggplot(dane, aes(x = Discount, y = Profit)) +
+
+  stat_bin2d(bins = 30) +
+
+  scale_fill_gradient(low = "lightblue", high = "red") +
+
+  geom_smooth(method = "lm", color = "white", se = TRUE) +
+
+  labs(
+
+    title = "Gęstość relacji: Rabat vs Zysk",
+
+    x = "Rabat",
+
+    y = "Zysk ($)",
+
+    fill = "Liczba transakcji"
+
+  ) +
+
+  theme_minimal()
+
+```
+
+
+
+```{r}
+
+ggbetweenstats(
+
+  data = dane,
+
+  x = Category,
+
+  y = Profit,
+
+  type = "nonparametric", # Test Kruskala-Wallisa (odporny na outliery)
+
+  plot.type = "boxviolin",
+
+  title = "Porównanie zysków między kategoriami",
+
+  xlab = "Kategoria",
+
+  ylab = "Zysk ($)",
+
+  pairwise.display = "significant",
+
+  p.adjust.method = "holm",
+
+  messages = FALSE
+
+)
+
+```
+
+Wnioski: Test potwierdza istotne różnice między grupami (p < 0.001).
+
+
+
+Technology (Technologia) jest liderem rentowności.
+
+
+
+Furniture (Meble) wypada najgorzej, mając medianę zysku znacznie niższą od pozostałych, a także dużą liczbę wartości ujemnych (transakcji stratnych).
+
+
+
+```{r}
+
+ggcorrmat(
+
+  data = dane,
+
+  cor.vars = c("Sales", "Profit", "Quantity", "Discount"),
+
+  colors = c("#B2182B", "white", "#4D4D4D"),
+
+  title = "Macierz korelacji parametrów sprzedaży"
+
+)
+
+```
+
+Sales vs Profit (0.48): Istnieje dodatnia korelacja, ale nie jest ona idealna (r=0.48), co oznacza, że wysoka sprzedaż nie gwarantuje wysokiego zysku.
+
+
+
+Discount vs Profit (-0.22): Potwierdzenie niszczącego wpływu rabatów na wynik finansowy.
+
+```{r}
+
+library(ggstatsplot)
+
+
+
+ggscatterstats(
+
+  data = dane,
+
+  x = Discount,
+
+  y = Profit,
+
+  type = "nonparametric", # Bo zysk nie ma rozkładu normalnego
+
+  xlab = "Wysokość Rabatu",
+
+  ylab = "Zysk ($)",
+
+  title = "Czy rabaty zabijają zysk?",
+
+  messages = FALSE
+
+)
+
+```
+
+
+
+2.  Które kategorie i podkategorie produktów generują najwyższą sprzedaż, a które najwyższy zysk?
+
+```{r}
+
+# Porównanie Zysku między Kategoriami
+
+ggbetweenstats(
+
+  data = dane,
+
+  x = Category,
+
+  y = Profit,
+
+  type = "nonparametric", # Test Kruskala-Wallisa
+
+  plot.type = "boxviolin", # Połączenie pudełka i skrzypiec (jak u kolegów)
+
+  title = "Rentowność Kategorii Produktów",
+
+  xlab = "Kategoria",
+
+  ylab = "Zysk ($)",
+
+  pairwise.display = "significant", # Pokaż tylko istotne różnice
+
+  p.adjust.method = "holm",
+
+  messages = FALSE
+
+)
+
+```
+
+
+
+3.  Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?
+
+```{r}
+
+# Tworzymy kolumnę Marża %
+
+dane_region <- dane %>% 
+
+  mutate(Margin = (Profit / Sales) * 100)
+
+
+
+ggbetweenstats(
+
+  data = dane_region,
+
+  x = Region,
+
+  y = Margin,
+
+  type = "nonparametric",
+
+  title = "Porównanie Marży Procentowej między Regionami",
+
+  xlab = "Region",
+
+  ylab = "Marża (%)",
+
+  messages = FALSE
+
+)
+
+```
+
+
+
+
+```{r}
+
+# 1. Liczymy p-value (Czy regiony różnią się zyskiem?)
+
+# Używam base R (kruskal.test), bo jest niezawodny
+
+test_stat <- kruskal.test(Profit ~ Region, data = dane)
+
+p_value <- test_stat$p.value
+
+p_napis <- paste0("Test Kruskala-Wallisa: p = ", format.pval(p_value, digits = 3, eps = 0.001))
+
+
+
+# 2. Rysujemy wykres Ridgeline (Górski)
+
+ggplot(dane, aes(x = Profit, y = Region, fill = Region)) +
+
+  
+
+  geom_density_ridges(
+
+    scale = 0.9,           # Jak bardzo górki na siebie zachodzą
+
+    alpha = 0.7,           # Przezroczystość
+
+    quantile_lines = TRUE, # Pokazuje linie kwartyli
+
+    quantiles = 2,         # Pokazuje medianę (środek)
+
+    jittered_points = TRUE, # Dodaje kropki (konkretne zamówienia)
+
+    position = position_points_jitter(width = 0.1, height = 0),
+
+    point_size = 0.5,      # Mniejsze kropki, żeby nie zasłaniały
+
+    point_alpha = 0.2
+
+  ) +
+
+  
+
+  # WAŻNE: Przybliżenie na typowe transakcje (bez tego wykres byłby płaski przez outliery)
+
+  coord_cartesian(xlim = c(-100, 200)) + 
+
+
+
+  labs(title = "Rozkład Zysku w Regionach (Ridgeline)",
+
+       subtitle = p_napis,  # Tu wstawi się wynik testu statystycznego
+
+       x = "Zysk z transakcji ($)",
+
+       y = "Region") +
+
+
+
+  theme_minimal() +
+
+  theme(legend.position = "none") +
+
+  scale_fill_viridis_d() # Ładna paleta kolorów
+
+```
+
+
+
+```{r}
+
+# 1. Liczymy p-value dla Sprzedaży
+
+test_stat <- kruskal.test(Sales ~ Region, data = dane)
+
+p_value <- test_stat$p.value
+
+p_napis <- paste0("Test Kruskala-Wallisa: p = ", format.pval(p_value, digits = 3, eps = 0.001))
+
+
+
+# 2. Wykres
+
+ggplot(dane, aes(x = Sales, y = Region, fill = Region)) +
+
+  
+
+  geom_density_ridges(
+
+    scale = 0.9,
+
+    alpha = 0.7,
+
+    quantile_lines = TRUE,
+
+    quantiles = 2, # Mediana
+
+    jittered_points = TRUE,
+
+    position = position_points_jitter(width = 0.1, height = 0),
+
+    point_size = 0.5,
+
+    point_alpha = 0.2
+
+  ) +
+
+  
+
+  # WAŻNE: Zoom na typowe zakupy (0-500$), bo te za 5000$ spłaszczą wykres
+
+  coord_cartesian(xlim = c(0, 500)) + 
+
+
+
+  labs(title = "Wartość zamówień w Regionach (Ridgeline)",
+
+       subtitle = p_napis,
+
+       x = "Wartość sprzedaży ($)",
+
+       y = "Region") +
+
+
+
+  theme_minimal() +
+
+  theme(legend.position = "none") +
+
+  scale_fill_viridis_d(option = "magma") # Inna paleta dla odmiany
+
+```
+
+
+
+```{r}
+
+# 1. Liczymy p-value dla Rabatu
+
+test_stat <- kruskal.test(Discount ~ Region, data = dane)
+
+p_value <- test_stat$p.value
+
+p_napis <- paste0("Test Kruskala-Wallisa: p = ", format.pval(p_value, digits = 3, eps = 0.001))
+
+
+
+# 2. Wykres
+
+ggplot(dane, aes(x = Discount, y = Region, fill = Region)) +
+
+  
+
+  geom_density_ridges(
+
+    scale = 0.9,
+
+    alpha = 0.7,
+
+    quantile_lines = TRUE,
+
+    quantiles = 2,
+
+    jittered_points = TRUE,
+
+    # Tu mniejszy jitter, bo rabaty są dyskretne (np. 0.2, 0.3)
+
+    position = position_points_jitter(width = 0.01, height = 0),
+
+    point_size = 0.5,
+
+    point_alpha = 0.2
+
+  ) +
+
+  
+
+  labs(title = "Polityka rabatowa w Regionach",
+
+       subtitle = p_napis,
+
+       x = "Wysokość rabatu (0.2 = 20%)",
+
+       y = "Region") +
+
+
+
+  theme_minimal() +
+
+  theme(legend.position = "none") +
+
+  scale_fill_viridis_d(option = "cividis")
+
+```
+
+
+6. Podsumowanie 
+Przeprowadzona analiza pozwala na sformułowanie następujących rekomendacji biznesowych:
+
+Ograniczenie rabatów: Rabaty powyżej 20% w kategorii Meble są głównym źródłem strat. Należy zrewidować politykę cenową w tym segmencie.
+
+Fokus na Technologię: Kategoria Technology generuje najwyższą marżę i powinna być priorytetem w kampaniach marketingowych.
+
+Sezonowość: Należy przygotować zapasy na szczyt sprzedażowy w IV kwartale, pamiętając jednak o kontroli marży w tym okresie.
+
 
