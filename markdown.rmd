@@ -1286,7 +1286,7 @@ oferuje najwyższą rentowność przy niskim wolumenie (potencjał
 premium/B2B)
 
 ```{r}
-
+df$shipping_days <- as.numeric(df$`Ship Date` - df$`Order Date`)
 polish_days <- c("poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela")
 df$weekday <- factor(weekdays(df$`Order Date`), levels = polish_days, ordered = TRUE)
 
