@@ -778,7 +778,10 @@ Kluczowe obserwacje:
 Najmniejsze rabaty przekładają się na najwyższą marżę i największy łączny zysk. Klienci w tym regionie są lojalni wobec marki, a nie ceny.
 - **Mit „więcej rabatu = więcej klientów”:** Centralny ma wysoki rabat, ale niski wolumen sprzedaży. Mimo najwyższych opustów liczba zamówień jest tam niższa niż w regionach z niższymi rabatami. To dowód, że głębokie promocje przyciągają niewłaściwy segment lub nie budują lojalności.
 - **Rabat bez wzrostu wolumenu = podwójna strata:** Centralny łączy niską średnią sprzedaż z ujemną marżą.Firma traci na każdej transakcji, a jednocześnie nie osiąga wzrostu wartości koszyka ani liczby zamówień. To najgorszy możliwy scenariusz cenowy.
-```{r}
+
+```{r echo=FALSE}
+
+# 1. Przygotowanie danych
 rabaty_region <- df %>%
   group_by(Region) %>%
   summarise(
@@ -792,7 +795,8 @@ rabaty_region <- df %>%
     .groups = "drop"
   ) %>%
   arrange(desc(średni_rabat))
-  
+
+# 2. Tworzenie wykresu
 p_rabaty_region <- plot_ly(
   data = rabaty_region,
   x = ~średni_rabat,
@@ -814,10 +818,10 @@ p_rabaty_region <- plot_ly(
     "<b>%{text}</b><br>",
     "Śr. rabat: %{x:.1f}%<br>",
     "Marża: %{y:.1f}%<br>",
-    "Śr. sprzedaż: $%{customdata:.2f}<br>",
+    "Śr. sprzedaż: $%{customdata[0]:.2f}<br>", # poprawiony indeks customdata
     "Zamówienia: %{customdata[1]:,}<extra></extra>"
   ),
-  customdata = ~matrix(c(średnia_sprzedaż, liczba_zamówień), ncol = 2)
+  customdata = ~cbind(średnia_sprzedaż, liczba_zamówień) # cbind jest bezpieczniejszy dla plotly
 ) %>%
   layout(
     title = list(
@@ -829,21 +833,15 @@ p_rabaty_region <- plot_ly(
     shapes = list(
       list(
         type = "line",
-        x0 = 0, x1 = 25,
+        x0 = 0, x1 = max(rabaty_region$średni_rabat) * 1.1,
         y0 = mean(rabaty_region$marża_zysku),
         y1 = mean(rabaty_region$marża_zysku),
         line = list(color = "gray", width = 2, dash = "dash")
       )
-    ),
-    annotations = list(
-      list(
-        x = 0.5, y = 1.05, xref = "paper", yref = "paper",
-        text = "<b>Central i South: Najwyższe rabaty, najniższe marże</b>",
-        showarrow = FALSE, font = list(size = 14, color = "red")
-      )
     )
-  )
+  ) # Tutaj było najwięcej błędów w nawiasach
 
+# 3. Wyświetlenie wykresu
 p_rabaty_region
 ```
 
@@ -2421,7 +2419,7 @@ ggplot(dane, aes(x = Discount, y = Profit)) +
 ```
 
 ## Analiza korelacji rabat - zysk według regionów
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 # 1. TESTY KORELACJI DLA KAŻDEGO REGIONU
 korelacje_region <- data.frame()
 
@@ -2548,7 +2546,7 @@ cat("3. Rabaty szkodzą zyskowi w każdym regionie (im wyższy rabat = niższy z
 
 
 ## Analiza sezonowości dla sprzedaży
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 anova_sales_data <- df %>%
   mutate(
     month = factor(month(`Order Date`), levels = 1:12, labels = polish_months_short)
@@ -2593,7 +2591,7 @@ if(nrow(anova_sales_data) > 0) {
 ```
 
 ## Porównanie sezonowości zysku i sprzedaży
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 comparison_data <- df %>%
   mutate(
     month_num = month(`Order Date`),
