@@ -1143,7 +1143,7 @@ regionach. Analiza odpowiada na pytanie badawcze #3: *"Czy istnieją
 regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?"*
 
 ```{r, echo = FALSE}
-# ANALIZA REGIONÓW - PRZYGOTOWANIE DANYCH
+# 1. ANALIZA REGIONÓW - PRZYGOTOWANIE DANYCH
 region_summary <- df %>%
   group_by(Region) %>%
   summarise(
@@ -1163,7 +1163,60 @@ region_summary <- df %>%
       "<br><b>Marża:</b> ", round(marża, 2), "%"
     )
   )
+
+# 2. TWORZENIE WYKRESÓW
+library(plotly)
+library(htmltools)
+
+# Wykres A: Sprzedaż vs Marża (Bąbelkowy)
+p_region_scatter <- plot_ly(
+  data = region_summary,
+  x = ~sprzedaż,
+  y = ~marża,
+  type = "scatter",
+  mode = "markers+text",
+  marker = list(
+    size = ~abs(zysk) * 2, # Wielkość bąbelka zależy od zysku
+    color = ~kolor,
+    line = list(color = "white", width = 2),
+    opacity = 0.7
+  ),
+  text = ~Region,
+  textposition = "top center",
+  hovertext = ~hover_txt,
+  hoverinfo = "text"
+) %>%
+  layout(
+    title = "Regiony: Sprzedaż vs Marża",
+    xaxis = list(title = "Sprzedaż (tys. $)"),
+    yaxis = list(title = "Marża (%)"),
+    margin = list(t = 50)
+  )
+
+# Wykres B: Marża wg Regionu (Słupkowy)
+p_region_bar <- plot_ly(
+  data = region_summary,
+  x = ~Region,
+  y = ~marża,
+  type = "bar",
+  marker = list(color = ~kolor),
+  text = ~paste0(round(marża, 1), "%"),
+  textposition = "outside",
+  hovertext = ~hover_txt,
+  hoverinfo = "text"
+) %>%
+  layout(
+    title = "Porównanie Marży wg Regionu",
+    xaxis = list(title = ""),
+    yaxis = list(title = "Marża (%)"),
+    margin = list(t = 50)
+  )
+
+# 3. WYŚWIETLENIE WYKRESÓW
+# Używamy tagList, aby R Markdown wyrenderował oba obiekty Plotly
+htmltools::tagList(list(p_region_scatter, p_region_bar))
 ```
+
 
 ### Regiony: relacja sprzedaży i marży
 
@@ -1840,9 +1893,8 @@ wysyłki) oraz inne czynniki, aby pokazać, jak powstaje końcowa strata
 netto. Ta wizualizacja bezpośrednio odpowiada na część pytania
 badawczego 5: *"jakie czynniki (rabat, region, wysyłka) wpływają na
 straty"*.
-
 ```{r, echo = FALSE}
-# Przygotowanie danych dla top 3 stratnych podkategorii
+# 1. Przygotowanie danych dla top 3 stratnych podkategorii
 top_loss_categories <- df %>%
   group_by(`Sub-Category`) %>%
   summarise(
@@ -1854,7 +1906,7 @@ top_loss_categories <- df %>%
   slice(1:3) %>%
   pull(`Sub-Category`)
 
-# Dekompozycja dla każdej kategorii
+# 2. Dekompozycja dla każdej kategorii
 waterfall_data <- df %>%
   filter(`Sub-Category` %in% top_loss_categories) %>%
   group_by(`Sub-Category`) %>%
@@ -1880,20 +1932,22 @@ waterfall_data <- df %>%
     )
   )
 
-# Utworzenie wykresu dla każdej podkategorii
+# 3. Utworzenie listy wykresów
+library(plotly)
+library(htmltools)
+
 plots_list <- list()
 
 for (cat in top_loss_categories) {
   cat_data <- waterfall_data %>% filter(`Sub-Category` == cat)
   
-  # Przygotowanie danych dla waterfall
+  # Przygotowanie etykiet i wartości (rabaty i koszty jako wartości ujemne)
   x_labels <- c("Sprzedaż brutto", "- Rabaty", "- Koszty wysyłki", "- Inne koszty", "Zysk netto")
   values <- cat_data$value
-  
-  # Zamiana rabatów, kosztów na wartości ujemne dla waterfall
-  values[2:4] <- -values[2:4]
+  values[2:4] <- -values[2:4] # Zamiana na ujemne, by "spadały" w dół na wykresie
   
   p <- plot_ly(
+    data = cat_data,
     x = x_labels,
     y = values,
     type = "waterfall",
@@ -1907,21 +1961,19 @@ for (cat in top_loss_categories) {
     totals = list(marker = list(color = "#4575b4"))
   ) %>%
     layout(
-      title = paste("Dekompozycja strat:", cat),
+      title = list(text = paste("Dekompozycja strat:", cat), x = 0.5),
       xaxis = list(title = "", tickangle = -45),
       yaxis = list(title = "Wartość ($)"),
       showlegend = FALSE,
-      margin = list(b = 100)
+      margin = list(b = 100, t = 50)
     )
   
+  # Zapisujemy każdy wykres do listy
   plots_list[[cat]] <- p
 }
-
-# Wyświetl wszystkie wykresy
-for (p in plots_list) {
-  print(p)
-}
+htmltools::tagList(plots_list)
 ```
+
 
 ### Czas dostawy i rentowność według regionów
 
