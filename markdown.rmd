@@ -3300,20 +3300,8 @@ cat("
 
 ### Wnioski co do rabatów
 
-```{r, echo = FALSE, message = FALSE, warning = FALSE}
-# Dane z CLV
-clv_0 <- df_clv %>% filter(discount_category == "Brak rabatu (0%)") %>% pull(avg_profit_per_customer)
-clv_high <- df_clv %>% filter(discount_category == "Wysoki (>40%)") %>% pull(avg_profit_per_customer)
-stick_0 <- df_clv %>% filter(discount_category == "Brak rabatu (0%)") %>% pull(avg_transactions_per_customer)
-stick_high <- df_clv %>% filter(discount_category == "Wysoki (>40%)") %>% pull(avg_transactions_per_customer)
-prof_high <- df_clv %>% filter(discount_category == "Wysoki (>40%)") %>% pull(profitability_rate)
-
-# Dane z logistyki
-discount_effect <- (1 - exp(coefficients['Discount']))*100
-
-cat("
 **1. RABAT NISZCZY RENTOWNOŚĆ KOMPLETNIE**
-   - CLV: Klient bez rabatu = $", round(clv_0, 2), " zysku, klient z >40% rabatu = $", round(clv_high, 2), " (-", round(abs((clv_high/clv_0-1)*100)), "%)
+   - CLV: Klient bez rabatu = $43.86 zysku, klient z >40% rabatu = $-128.75 (-394%)
    - LOGISTYKA potwierdza: każdy +1% rabatu zmniejsza szanse rentowności o ~100% (OR = 0.0000)
    - **Wniosek:** Nie ma marginalnego wpływu - rabat to binarna zmienna: rentowny ALBO stratny
 
@@ -3344,14 +3332,12 @@ cat("
 **PRZESTAĆ stosować rabaty powyżej 20%** - każdy dodatkowy 1% to zmniejszenie szans rentowności o 100%
 
 ✓ **NOWA STRATEGIA:**
-   - Utrzymać klientów bez rabatu ($", round(clv_0, 2), " zysku na klienta)
+   - Utrzymać klientów bez rabatu ($43.86 zysku na klienta)
    - Maksymalnie rabaty 0-20% przy zdużych zamówieniach (ponad $500)
    - Wprowadzić program lojalnościowy (punkty, early access) zamiast rabatów
    - Rezultat: utrzymanie rentowności + wzrost stickiness
 
-**ILOŚĆ PIENIĘDZY NA STOLE:** W grupie >40% rabatów średni klient generuje straty zamiast zysku ($", round(clv_high, 2), "). Jeśli ta grupa to ~470 klientów rocznie, to jest SETKI TYSIĘCY ZŁOTYCH strat rocznie, które można uniknąć
-")
-```
+**ILOŚĆ PIENIĘDZY NA STOLE:** W grupie >40% rabatów średni klient generuje straty zamiast zysku ($-128.75). Jeśli ta grupa to ~470 klientów rocznie, to jest SETKI TYSIĘCY ZŁOTYCH strat rocznie, które można uniknąć
 
 # 6. Podsumowanie
 
