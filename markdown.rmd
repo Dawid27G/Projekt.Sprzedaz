@@ -48,8 +48,10 @@ mutate(
   Quantity = as.numeric(Quantity),
   Discount = as.numeric(Discount),
   Category = as.character(Category),
-  Segment  = as.character(Segment)
+  Segment  = as.character(Segment),
+  `Ship Date`  = as.Date(`Ship Date`)
 )
+
 ```
 
 # 1. Wprowadzenie
@@ -81,29 +83,122 @@ Główne pytania badawcze:
 Proces przygotowania danych był wieloetapowy, aby zapewnić najwyższą
 jakość analizy.
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+## 2.1. Ogólny przegląd braków danych
 
-miss_var_summary(dane)
-miss_case_summary(dane)
+Poniższy wykres przedstawia globalną wizualizację kompletności zbioru danych Superstore. Szary obszar reprezentuje obserwacje z kompletnymi danymi (Present > 98.9%), podczas gdy niewielkie czarne fragmenty wskazują na braki w danych (Missing < 0.1%). Każdy wiersz na wykresie odpowiada pojedynczej zmiennej, a każda kolumna reprezentuje kolejne obserwacje w zbiorze.
+
+Kluczowe obserwacje:
+- **Wysoka kompletność danych:** Ponad 98.9% wszystkich wartości w zbiorze jest dostępnych, co świadczy o bardzo dobrej jakości danych źródłowych
+- **Marginalne braki:** Braki danych stanowią mniej niż 1% całego zbioru, co jest doskonałym wynikiem dla danych transakcyjnych
+- **Koncentracja braków:** Czarne linie widoczne w górnej części wykresu wskazują, że braki koncentrują się w określonych zmiennych (prawdopodobnie Discount, Profit oraz dane adresowe), podczas gdy większość zmiennych jest w pełni kompletna
+- **Losowy rozkład:** Braki wydają się być rozłożone losowo wzdłuż obserwacji, co sugeruje brak systematycznego wzorca utraty danych związanego z czasem lub procesem zbierania danych
+- **Gotowość do analizy:** Minimalny odsetek braków i ich niesystematyczny charakter potwierdzają, że zbiór nadaje się do dalszej analizy po zastosowaniu odpowiednich technik imputacji
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width='50%'}
 vis_miss(dane)
-gg_miss_var(dane) +
-  labs(title = "Liczba braków danych w każdej zmiennej")
-gg_miss_case(dane) +
-  labs(title = "Braki danych w poszczególnych wierszach")
-gg_miss_upset(dane)
-miss_var_summary(dane)
 ```
 
-```{r include=FALSE}
+## 2.2. Rozkład braków według zmiennych
 
+Poniższy wykres słupkowy przedstawia liczbę brakujących wartości (missing values) w każdej zmiennej zbioru danych. Długość słupka odpowiada liczbie obserwacji z brakami. Zmienne są posortowane malejąco według liczby braków, co pozwala na szybką identyfikację najbardziej problematycznych kolumn.
+
+Kluczowe obserwacje:
+- **Profit i Discount - istotne braki finansowe:** Zmienne związane z zyskami i rabatami wykazują znaczną liczbę braków, co jest krytyczne dla analizy rentowności i wymaga zaawansowanych technik imputacji
+- **Dane adresowe - równomierne braki:** City i State wykazują podobną liczbę braków, co sugeruje, że braki w danych adresowych mogą występować razem w tych samych obserwacjach
+- **Order Date i Ship Date - marginalne braki:** Daty mają umiarkowaną liczbę braków, które mogą być imputowane na podstawie logiki biznesowej (mediana czasu dostawy)
+- **Większość zmiennych kompletna:** Wiele zmiennych nie ma braków wcale (Sales, Quantity, Category, Sub-Category, Region, Product ID, Order ID, Customer ID), co potwierdza ogólną dobrą jakość danych
+- **Wymiar problemu:** Koncentracja braków w kilku kluczowych zmiennych (Postal Code, Profit, Discount, City, State) oznacza, że strategia imputacji powinna być priorytetowo skierowana na te obszary, podczas gdy reszta zbioru pozostaje w pełni użyteczna
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width='50%'}
+gg_miss_var(dane) +
+  labs(title = "Liczba braków danych w każdej zmiennej")
+```
+
+## 2.3. Rozkład braków w obserwacjach
+
+Poniższy wykres pokazuje liczbę brakujących wartości w każdej obserwacji (wierszu) zbioru danych. Oś X reprezentuje liczbę braków w każdym wierszu, a oś Y pokazuje kolejne obserwacje. Długość horyzontalnego paska dla każdej obserwacji odpowiada liczbie brakujących danych w tym wierszu.
+
+Kluczowe obserwacje:
+- **Większość wierszy kompletnych:** Zdecydowana większość obserwacji (te na górze wykresu) ma bardzo mało braków - prawie zerową liczbę brakujących wartości, co świadczy o dobrej kompletności danych
+- **Rozrzedzenie braków:** Braki są rozproszone po poszczególnych wierszach, a nie skupione w kilku obserwacjach, co oznacza, że żaden wiersz nie jest "całkowicie nieużyteczny"
+- **Maksymalnie około 1-2 braki na wiersz:** Nawet wiersze z największą liczbą braków mają poniżej 2 brakujących wartości, co jest bardzo dobrym wynikiem
+- **Brak wzorca systematycznego:** Rozłożenie braków wzdłuż osi Y wskazuje, że braki nie są skoncentrowane w określonej części zbioru danych (np. na początku lub końcu)
+- **Łatwa imputacja:** Ta struktura braków czyni imputację stosunkowo prostą - większość wierszy będzie można użyć bez jakichkolwiek modyfikacji, a dla tych kilku z brakami wystarczą proste strategie uzupełnienia
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width='50%'}
+gg_miss_case(dane) +
+  labs(title = "Braki danych w poszczególnych wierszach")
+```
+
+## 2.4. Kombinacje braków danych - Upset Plot
+
+Poniższy diagram "UpSet" pokazuje, które zmienne mają braki jednocześnie, czyli jakie kombinacje braków danych występują razem. Lewy panel (słupki poziome) pokazuje liczebność poszczególnych braków, a górny panel (słupki pionowe) pokazuje, ile obserwacji ma konkretną kombinację braków. Linie łączące słupki wskazują, które zmienne brakują razem.
+
+Kluczowe obserwacje:
+- **Shop Mode NA dominuje:** Braki w zmiennej Shop Mode (dostaw) są najczęstsze i najczęściej pojawią się samodzielnie (bez innych braków)
+- **Quantity NA - druga na liście:** Ilość produktów ma drugą co do liczby braków, również głównie niezależnie od innych zmiennych
+- **Profit NA - trzeci:** Braki w zysku pojawiają się na trzecim miejscu i również często bez towarzystwa innych braków
+- **Sub-Category i Discount - rzadsze braki:** Te zmienne mają mniej braków niż poprzednie
+- **Niska współzależność braków:** Brak wyraźnych pionowych linii łączących oznacza, że braki raczej nie kumulują się - czyli jeśli brakuje wartości w Shop Mode, to nie znaczy że będą braki w Quantity czy Profit
+- **Imputacja niezależna:** Taka struktura braków sugeruje, że każdą zmienną można imputować niezależnie, bez konieczności rozpatrywania złożonych zależności między brakami
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width='50%'}
+gg_miss_upset(dane)
+```
+
+
+## 2.5. Wzory braków danych - Pattern Matrix
+
+Poniższy diagram "md.pattern" przedstawia macierz wzorów braków danych. Każdy wiersz reprezentuje inny wzór braków (kombinację kompletnych i brakujących wartości), a każda kolumna reprezentuje zmienną. Niebieskie kwadraty oznaczają dane dostępne (present), a różowe/czerwone oznaczają braki. Liczby po lewej stronie pokazują, ile obserwacji ma dany wzór braków, a liczby na dole pokazują łączną liczbę braków w każdej zmiennej.
+
+Kluczowe obserwacje:
+- **Dominacja kompletnych obserwacji:** Pierwszy wiersz (9933 obserwacji) reprezentuje dane całkowicie kompletne - prawie wszystkie wiersze należą do tej grupy
+- **Minimalna liczba wzorów braków:** Tylko kilka alternatywnych wzorów braków pojawia się w zbiorze, co oznacza niesystematyczne braki - nie ma jednego dominującego wzoru
+- **Rzadkie kumulacje braków:** Żaden wzór braku nie ma więcej niż kilka obserwacji, co potwierdza, że braki są rozrzedzane po zbiorze
+- **Braki w różnych zmiennych:** Różowe pola pojawiają się w różnych kolumnach dla różnych wierszy, wskazując, że braki nie kumulują się w tych samych obserwacjach
+- **Łatwa interpretacja:** Dolna linia pokazuje, że niektóre zmienne (te po prawej) mają braki, podczas gdy inne (po lewej) są całkowicie kompletne
+- **Skuteczność imputacji:** Ta struktura sugeruje, że imputacja będzie prosta - większość danych można wykorzystać bez zmian, a dla kilku wierszy z brakami wystarczy zastosować odpowiednie strategie uzupełnienia
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width='50%'}
 md.pattern(dane)
+```
 
-dane <- dane %>%
-  mutate(
-    `Order Date` = as.Date(`Order Date`),
-    `Ship Date`  = as.Date(`Ship Date`)
-  )
+## 2.6. Mechanizm braków danych - Wnioski z analizy
 
+Na podstawie kompleksowej analizy wszystkich powyższych wykresów możemy stwierdzić, że braki danych w zbiorze Superstore mają charakter **MCAR (Missing Completely At Random)**. Dowodami na to są:
+
+**Ze wzoru vis_miss (2.1):**
+- Braki rozproszone losowo po całej matrycy bez skupień czy wzorów
+- Brak systematycznego trendu braków na osi czasowej/wierszy
+
+**Ze wzoru gg_miss_var (2.2):**
+- Różne zmienne mają różne liczby braków (Discount, Profit, City, State) - nie ma jednego źródła problemu
+- Braki są niezależne dla każdej zmiennej
+
+**Ze wzoru gg_miss_case (2.3):**
+- Maksymalnie 1-2 braki na obserwację (żaden wiersz nie ma wielu braków jednocześnie)
+- Braki nie kumulują się w tych samych obserwacjach
+- Rozpylenie braków wskazuje na niezależność mechanizmu
+
+**Ze wzoru gg_miss_upset (2.4):**
+- Dominujące są pojedyncze braki w zmiennych, a nie kombinacje
+- Brak wyraźnych "łańcuszków" braków (braki jednej zmiennej nie powodują braków w innej)
+- Niska współzależność między brakami potwierdza ich niezależność
+
+**Ze wzoru md.pattern (2.5):**
+- 9933 obserwacji w pełni kompletnych vs zaledwie kilka alternatywnych wzorów
+- Każdy alternatywny wzór braku pojawia się zaledwie kilka razy
+- Wzory są różnorodne, co wskazuje na losowość
+
+**Konsekwencje dla imputacji:**
+MCAR to najkorzystniejszy typ mechanizmu braków, ponieważ:
+- Braki są całkowicie niezależne od danych i wartości zmiennych
+- Możemy bezpiecznie stosować zaawansowane metody imputacji (MICE, hot-deck, PMM)
+- Wyniki analiz nie będą obciążone odchyleniami wynikającymi z selektywnych braków
+- Nie ma potrzeby stosowania zawiłych procedur wagowania czy korekcji błędu systematycznego
+
+
+```{r include=FALSE}
 
 hotdeck_grouped <- function(x, group_df) {
   out <- x
@@ -233,9 +328,7 @@ md.pattern(dane)
 head(dane)
 ```
 
--   **Identyfikacja braków:** Wykryto braki danych w kluczowych
-    zmiennych takich jak Discount (20%), Profit (11%) oraz danych
-    adresowych.
+## 2.7. Podsumowanie metod imputacji braków danych
 
 -   **Imputacja danych numerycznych:** Zastosowano zaawansowany algorytm
     MICE (Multivariate Imputation by Chained Equations) z metodą PMM
