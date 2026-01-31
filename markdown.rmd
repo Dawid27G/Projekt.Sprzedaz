@@ -1606,10 +1606,8 @@ limity <- cut(dane$Sales,
 # Tabela częstości
 tabela_sales <- freq(limity)
 
-
 ```
 
-NIE WYCHODZI MI TAI TEST
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 kbl(tabela_sales, caption = "Tabela 1. Rozkład sprzedaży w Superstore (USD)") %>%
@@ -1619,6 +1617,7 @@ kbl(tabela_sales, caption = "Tabela 1. Rozkład sprzedaży w Superstore (USD)") 
 tab1_tai <- classIntervals(dane$Sales, n = 5, style = "fixed",
                            fixedBreaks = c(0, 100, 500, 1000, 5000, max(dane$Sales)))
 tai_wynik <- jenks.tests(tab1_tai)
+tai_wynik 
 
 x <- dane$Sales
 x <- x[is.finite(x)]
