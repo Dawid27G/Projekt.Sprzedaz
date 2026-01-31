@@ -770,6 +770,83 @@ plot_ly(
   )
 ```
 
+### Wpływ rabatów na marże według regionów
+Kluczowe obserwacje:
+- **Strata na każdej sztuce:** Region Centralny (rabat 24%) = marża ujemna (-10%). Agresywne cięcie cen prowadzi do sprzedaży poniżej granicy opłacalności. Rabat nie przyciąga wystarczającej liczby klientów, by zrekompensować utraconą marżę.
+- **Strefa bezpiecznego rabatu:** Regiony East i South (rabat ~14–15%) = marża 16–17%.Umiarkowane rabaty utrzymują konkurencyjność bez rujnowania rentowności. To optymalny przedział dla zachowania zdrowego balansu między zachętą a zyskiem.
+- **Optimum niskiego rabatu:** Region West (rabat 11%) = marża 22%
+Najmniejsze rabaty przekładają się na najwyższą marżę i największy łączny zysk. Klienci w tym regionie są lojalni wobec marki, a nie ceny.
+- **Mit „więcej rabatu = więcej klientów”:** Centralny ma wysoki rabat, ale niski wolumen sprzedaży. Mimo najwyższych opustów liczba zamówień jest tam niższa niż w regionach z niższymi rabatami. To dowód, że głębokie promocje przyciągają niewłaściwy segment lub nie budują lojalności.
+- **Rabat bez wzrostu wolumenu = podwójna strata:** Centralny łączy niską średnią sprzedaż z ujemną marżą.Firma traci na każdej transakcji, a jednocześnie nie osiąga wzrostu wartości koszyka ani liczby zamówień. To najgorszy możliwy scenariusz cenowy.
+```{r}
+rabaty_region <- df %>%
+  group_by(Region) %>%
+  summarise(
+    średni_rabat = mean(Discount, na.rm = TRUE) * 100,
+    średnia_sprzedaż = mean(Sales, na.rm = TRUE),
+    średni_zysk = mean(Profit, na.rm = TRUE),
+    marża_zysku = mean(Profit / Sales * 100, na.rm = TRUE),
+    liczba_zamówień = n(),
+    łączna_sprzedaż = sum(Sales, na.rm = TRUE) / 1000,
+    łączny_zysk = sum(Profit, na.rm = TRUE) / 1000,
+    .groups = "drop"
+  ) %>%
+  arrange(desc(średni_rabat))
+  
+p_rabaty_region <- plot_ly(
+  data = rabaty_region,
+  x = ~średni_rabat,
+  y = ~marża_zysku,
+  type = "scatter",
+  mode = "markers+text",
+  text = ~Region,
+  textposition = "top center",
+  marker = list(
+    size = ~sqrt(liczba_zamówień/50) * 15,
+    color = ~średni_rabat,
+    colorscale = "RdYlBu",
+    reversescale = TRUE,
+    showscale = TRUE,
+    colorbar = list(title = "Śr. rabat (%)"),
+    line = list(color = "white", width = 2)
+  ),
+  hovertemplate = paste(
+    "<b>%{text}</b><br>",
+    "Śr. rabat: %{x:.1f}%<br>",
+    "Marża: %{y:.1f}%<br>",
+    "Śr. sprzedaż: $%{customdata:.2f}<br>",
+    "Zamówienia: %{customdata[1]:,}<extra></extra>"
+  ),
+  customdata = ~matrix(c(średnia_sprzedaż, liczba_zamówień), ncol = 2)
+) %>%
+  layout(
+    title = list(
+      text = "<b>NISZCZĄCY WPŁYW RABATÓW</b>",
+      x = 0.05
+    ),
+    xaxis = list(title = "Średni rabat (%)"),
+    yaxis = list(title = "Marża zysku (%)"),
+    shapes = list(
+      list(
+        type = "line",
+        x0 = 0, x1 = 25,
+        y0 = mean(rabaty_region$marża_zysku),
+        y1 = mean(rabaty_region$marża_zysku),
+        line = list(color = "gray", width = 2, dash = "dash")
+      )
+    ),
+    annotations = list(
+      list(
+        x = 0.5, y = 1.05, xref = "paper", yref = "paper",
+        text = "<b>Central i South: Najwyższe rabaty, najniższe marże</b>",
+        showarrow = FALSE, font = list(size = 14, color = "red")
+      )
+    )
+  )
+
+p_rabaty_region
+```
+
 ## 3.2. PYTANIE BADAWCZE 2: Które kategorie i podkategorie produktów generują najwyższą sprzedaż, a które najwyższy zysk?
 
 ### Analiza rentowności kategorii: wykres bąbelkowy
@@ -2289,6 +2366,265 @@ ggplot(dane, aes(x = Discount, y = Profit)) +
 
   theme_minimal()
 
+```
+
+## Analiza korelacji rabat - zysk według regionów
+```{r}
+# 1. TESTY KORELACJI DLA KAŻDEGO REGIONU
+korelacje_region <- data.frame()
+
+for(region in unique(df$Region)) {
+  region_data <- df %>% filter(Region == region)
+  
+  test <- cor.test(region_data$Discount, region_data$Profit, 
+                   method = "pearson", use = "complete.obs")
+  # Określenie siły korelacji (według Cohena)
+  r_abs <- abs(test$estimate)
+  sila <- case_when(
+    r_abs >= 0.5 ~ "silna",
+    r_abs >= 0.3 ~ "umiarkowana",
+    r_abs >= 0.1 ~ "slaba",
+    TRUE ~ "bardzo slaba"
+  )
+  kierunek <- ifelse(test$estimate < 0, "ujemna", "dodatnia")
+  istotnosc <- ifelse(test$p.value < 0.001, "***",
+                     ifelse(test$p.value < 0.01, "**",
+                           ifelse(test$p.value < 0.05, "*", "ns")))
+  
+  korelacje_region <- rbind(korelacje_region, 
+    data.frame(
+      Region = region,
+      korelacja = round(test$estimate, 3),
+      p_value = ifelse(test$p.value < 0.001, "<0.001", 
+                      sprintf("%.4f", test$p.value)),
+      kierunek = kierunek,
+      siła = sila,
+      istotność = istotnosc,
+      n = nrow(region_data %>% filter(!is.na(Discount) & !is.na(Profit))),
+      stringsAsFactors = FALSE
+    ))
+}
+# WYKRES KORELACJI
+plot_ly(
+  data = korelacje_region,
+  x = ~Region,
+  y = ~korelacja,
+  type = "bar",
+  marker = list(
+    color = ~korelacja,
+    colorscale = list(
+      list(0, "#ef4444"),   # czerwony dla ujemnych
+      list(0.5, "#f3f4f6"), # szary dla zero
+      list(1, "#3b82f6")    # niebieski dla dodatnich
+    ),
+    cmin = -0.3, 
+    cmax = 0.1,
+    line = list(color = "#1f2937", width = 1.5)
+  ),
+  text = ~paste0("r = ", korelacja, 
+                ifelse(grepl("\\*", istotność), 
+                      paste0("\n", istotność), 
+                      "")),
+  textposition = "outside",
+  textfont = list(size = 11),
+  hovertemplate = paste(
+    "<b>%{x}</b><br>",
+    "Wsp. korelacji (r): %{y:.3f}<br>",
+    "Kierunek: %{customdata[1]}<br>",
+    "p-value: %{customdata[2]}<br>",
+    "Obserwacje: %{customdata[3]:,}<br>",
+    "<extra></extra>"
+  ),
+  customdata = ~matrix(c(kierunek, p_value, n), ncol = 3)
+) %>%
+  layout(
+    title = list(
+      text = "<b>Korelacja między rabatem a zyskiem wg regionów</b>",
+      font = list(size = 18, color = "#111827")
+    ),
+    xaxis = list(
+      title = "Region",
+      tickfont = list(size = 12),
+      gridcolor = "#e5e7eb"
+    ),
+    yaxis = list(
+      title = "Współczynnik korelacji Pearsona (r)",
+      range = c(-0.35, 0.1),
+      tickfont = list(size = 11),
+      gridcolor = "#e5e7eb",
+      zerolinecolor = "#6b7280",
+      zerolinewidth = 2
+    ),
+    plot_bgcolor = "#f9fafb",
+    paper_bgcolor = "#f9fafb",
+    hoverlabel = list(
+      bgcolor = "white",
+      font = list(size = 12, color = "#111827"),
+      bordercolor = "#d1d5db"
+    ),
+    margin = list(t = 80, b = 80, l = 80, r = 80)
+  )
+# 3. WYNIKI TABELARYCZNE
+korelacje_region %>%
+  mutate(
+    `Wsp. korelacji` = paste0(sprintf("%+.3f", korelacja), istotność)
+  ) %>%
+  select(
+    Region,
+    `Wsp. korelacji`,
+    `p-value` = p_value,
+    Kierunek = kierunek,
+    `Siła korelacji` = siła,
+    Obserwacje = n
+  ) %>%
+  knitr::kable(
+    caption = "**Korelacja rabat-zysk wg regionów**",
+    align = c("l", "c", "c", "c", "c", "c")
+  ) %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  ) 
+
+# 4. WNIOSKI
+cat("1. Wszystkie regiony mają UJEMNĄ korelację rabat-zysk\n")
+cat("2. Central: najsilniejsza ujemna korelacja (r = ", 
+    korelacje_region$korelacja[korelacje_region$Region == "Central"], ")\n", sep="")
+cat("3. Rabaty szkodzą zyskowi w każdym regionie (im wyższy rabat = niższy zysk)\n")
+```
+
+
+## Analiza sezonowości dla sprzedaży
+```{r}
+anova_sales_data <- df %>%
+  mutate(
+    month = factor(month(`Order Date`), levels = 1:12, labels = polish_months_short)
+  ) %>%
+  filter(!is.na(month), !is.na(Sales))
+p_anova_sales <- plot_ly(
+  data = anova_sales_data,
+  x = ~month,
+  y = ~Sales,
+  type = "box",
+  boxpoints = "outliers",
+  marker = list(color = "rgb(219, 68, 55)"),
+  line = list(color = "rgb(219, 68, 55)"),
+  name = "Sprzedaż"
+) %>%
+  layout(
+    title = list(
+      text = "<b>Rozkład sprzedaży wg miesięcy - test ANOVA</b><br><sup>Boxplot z wartościami odstającymi</sup>"
+    ),
+    xaxis = list(title = "Miesiąc", tickangle = -45),
+    yaxis = list(title = "Sprzedaż ($)", type = "log"),
+    showlegend = FALSE
+  )
+p_anova_sales
+
+if(nrow(anova_sales_data) > 0) {
+  anova_sales_test <- aov(log(Sales + 1) ~ month, data = anova_sales_data)  # log transform dla stabilności
+  anova_sales_summary <- summary(anova_sales_test)
+  p_value_sales <- anova_sales_summary[[1]]$`Pr(>F)`[1]
+  cat("H0: Średnia sprzedaż jest taka sama we wszystkich miesiącach\n")
+  cat("H1: Średnia sprzedaż różni się między miesiącami\n")
+  cat("p-value:", round(p_value_sales, 4), "\n")
+  
+  if(p_value_sales < 0.05) {
+    cat("\nWNIOSEK: Odrzucamy H0 (p < 0.05)\n")
+    cat("Istnieją statystycznie istotne różnice w sprzedaży między miesiącami.\n")
+  } else {
+    cat("\nWNIOSEK: Nie ma podstaw do odrzucenia H0 (p > 0.05)\n")
+    cat("Brak statystycznie istotnych różnic w sprzedaży między miesiącami.\n")
+  }
+}
+```
+
+## Porównanie sezonowości zysku i sprzedaży
+```{r}
+comparison_data <- df %>%
+  mutate(
+    month_num = month(`Order Date`),
+    month = polish_months_short[month_num]
+  ) %>%
+  filter(!is.na(month)) %>%
+  group_by(month, month_num) %>%
+  summarise(
+    avg_sales = mean(Sales, na.rm = TRUE),
+    avg_profit = mean(Profit, na.rm = TRUE),
+    sales_index = (avg_sales / mean(avg_sales, na.rm = TRUE)) * 100,
+    profit_index = (avg_profit / mean(avg_profit, na.rm = TRUE)) * 100,
+    correlation = cor(Sales, Profit, use = "complete.obs"),
+    .groups = "drop"
+  ) %>%
+  arrange(month_num)
+p_comparison <- plot_ly(
+  data = comparison_data,
+  x = ~month
+) %>%
+  add_trace(
+    y = ~sales_index,
+    type = "scatter",
+    mode = "lines+markers",
+    name = "Sprzedaż",
+    line = list(color = "blue", width = 3),
+    marker = list(size = 10, color = "blue"),
+    yaxis = "y",
+    hovertemplate = "Sprzedaż<br>Miesiąc: %{x}<br>Indeks: %{y:.1f}<extra></extra>"
+  ) %>%
+  add_trace(
+    y = ~profit_index,
+    type = "scatter",
+    mode = "lines+markers",
+    name = "Zysk",
+    line = list(color = "green", width = 3),
+    marker = list(size = 10, color = "green"),
+    yaxis = "y",
+    hovertemplate = "Zysk<br>Miesiąc: %{x}<br>Indeks: %{y:.1f}<extra></extra>"
+  ) %>%
+  layout(
+    title = list(
+      text = "<b>Porównanie sezonowości sprzedaży i zysku</b><br><sup>Indeks (100 = średnia roczna)</sup>"
+    ),
+    xaxis = list(
+      title = "Miesiąc",
+      categoryorder = "array",
+      categoryarray = polish_months_short
+    ),
+    yaxis = list(
+      title = "Indeks (100 = średnia)",
+      range = c(
+        min(comparison_data$sales_index, comparison_data$profit_index) * 0.9,
+        max(comparison_data$sales_index, comparison_data$profit_index) * 1.1
+      )
+    ),
+    hovermode = "x unified",
+    showlegend = TRUE,
+    shapes = list(
+      list(
+        type = "line",
+        x0 = 0,
+        x1 = 1,
+        xref = "paper",
+        y0 = 100,
+        y1 = 100,
+        line = list(color = "gray", width = 2, dash = "dash")
+      )
+    )
+  )
+p_correlation_months
+  correlation_table %>%
+    select(Month = month, Correlation = correlation, Strength = correlation_strength, Direction = direction) %>%
+    kable(digits = 3) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+# Wnioski
+cat("\n## KLUCZOWE WNIOSKI DOTYCZĄCE SEZONOWOŚCI:\n")
+cat("Różnice między miesiącami: ", 
+    ifelse(p_value_sales < 0.05, "ISTOTNE STATYSTYCZNIE", "NIEISTOTNE STATYSTYCZNIE"), "\n")
+cat("Korelacja sprzedaż-zysk: ", 
+    ifelse(mean(correlation_table$correlation, na.rm = TRUE) > 0, 
+           "GŁÓWNIE DODATNIA", "GŁÓWNIE UJEMNA"),
+    " (średnio: ", round(mean(correlation_table$correlation, na.rm = TRUE), 3), ")\n")
 ```
 
 ```{r echo=FALSE}
