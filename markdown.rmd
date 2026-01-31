@@ -2148,6 +2148,11 @@ gvf <- (sdam - sdcm) / sdam
 gvf
 
 ```
+## Analiza statystyczna zmiennych biznesowych**
+
+Zmienne sprzedaż i zysk wykazują silnie zaburzony rozkład, co widać po ogromnej różnicy między średnią a medianą oraz ekstremalnie wysokich wartościach skośności i kurtozy. Oba wskaźniki są zdominowane przez nieliczne, ale bardzo wysokie transakcje, podczas gdy większość operacji ma znacznie niższą wartość. Odchylenie standardowe znacznie przekracza średnią, co potwierdza dużą niejednorodność danych.
+Rabaty są stosowane relatywnie stabilnie – mediana na poziomie 20% wskazuje, że ta wartość jest typowa, przy czym skala rabatów waha się od 0% do 80%. Ilość sprzedanych produktów w transakcji oscyluje głównie wokół 3–4 sztuk, z maksymalnie 14 sztukami w pojedynczej transakcji.
+Podsumowując, dane charakteryzują się silną polaryzacją: większość transakcji to małe, typowe zamówienia, podczas gdy niewielki odsetek to bardzo duże, nietypowe operacje, które znacząco wpływają na ogólne statystyki sprzedaży i zysku.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -2173,7 +2178,12 @@ stats_df %>%
   column_spec(1, bold = T, color = "white", background = "#2c3e50") %>%
   row_spec(0, background = "#2c3e50", color = "white", bold = T)
 ```
+##Analiza efektywności segmentów produktowych
+Segment Technology generuje najwyższą średnią sprzedaż (481,68) i najwyższy średni zysk (80,86), a także największy łączny zysk (169318,20). Mimo wysokiego odchylenia standardowego zysku (410,40), co wskazuje na duże zróżnicowanie transakcji, mediana zysku na poziomie 27,32 potwierdza, że większość transakcji w tym segmencie jest dochodowa. Jest to jednocześnie segment z najniższym średnim rabatem (0,13).
 
+Segment Office Supplies ma najwięcej transakcji (6505), lecz charakteryzuje się relatywnie niską średnią sprzedażą (118,70) i drugą najniższą medianą zysku (7,15). Mimo to łączny zysk jest wysoki (133526,90) dzięki dużej liczbie transakcji. Odchylenie standardowe zysku (160,86) jest umiarkowane.
+
+Segment Furniture odznacza się średnią sprzedażą na poziomie 336,18, ale najniższym średnim zyskiem (9,72) i najniższą medianą zysku (8,19). Łączny zysk jest wyraźnie niższy niż w pozostałych segmentach (23388,99), pomimo stosunkowo wysokiego średniego rabatu (0,17). Niskie odchylenie standardowe (128,43) sugeruje najmniejsze zróżnicowanie zysków w tym segmencie.
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Tabela 2. Porównanie efektywności w segmentach produktowych
 # Dodałem Medianę i Odchylenie Standardowe zgodnie z prośbą
@@ -2197,7 +2207,15 @@ cat_profitability %>%
   column_spec(8, bold = T, color = "black", background = "#f9f9f9") %>%
   add_header_above(c(" " = 2, "Miary średnie i rozproszenia" = 5, "Wynik końcowy" = 1))
 ```
+##Kluczowe wnioski:
 
+1. Technology jest najbardziej rentowna, ale zysk jest silnie skoncentrowany w pojedynczych, wysokodochodowych transakcjach.
+
+2. Office Supplies działa stabilnie we wszystkich regionach, ale z dużym zróżnicowaniem zysków.
+
+3. Furniture ma problemy w regionie Central, gdzie generuje straty – wymaga pogłębionej analizy przyczyn.
+
+4. Region West jest najsilniejszy w każdej kategorii pod względem sumy zysku, natomiast Central ma najsłabsze wyniki (straty w Furniture, najniższe zyski w Office Supplies).
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
 
@@ -2245,6 +2263,8 @@ summary_stats <- dane %>%
   )
 ```
 
+## Wnioski ogólne:
+Region West jest najsilniejszy pod względem sumy i mediany zysku we wszystkich kategoriach produktowych. Technology generuje najwyższe średnie zyski, choć są one silnie skoncentrowane w kilku wysokodochodowych transakcjach, zwłaszcza w regionach Central i West. Office Supplies osiąga dodatnie wyniki we wszystkich regionach, jednak z wyraźną prawostronną skośnością, co oznacza, że większość zysków pochodzi z nielicznych, bardzo udanych transakcji. Furniture przynosi zyski we wszystkich regionach oprócz Central, gdzie odnotowuje straty, co wskazuje na konieczność analizy przyczyn negatywnej rentowności w tym obszarze.
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Statystyki zysku wg regionu
 profit_by_region <- dane %>%
@@ -2263,6 +2283,8 @@ kbl(profit_by_region, digits = 2, caption = "Tabela 3. Porównanie rentowności 
               background = spec_color(profit_by_region$`Suma Zysku`, option = "D"))
 
 ```
+Poniższy wykres pokazuje rozkład zysków dla 10 głównych podkategorii, przycięty do zakresu -200$ do +200$. Technology (Accessories, Phones, Copiers, Machines) ma wąskie, skoncentrowane rozkłady – zyski są stabilne. Office Supplies (Binders, Storage) i Furniture (Chairs, Tables, Bookcases) mają szersze rozkłady – większa zmienność zysków, w tym straty (zwłaszcza Tables i Bookcases). Mediana jest dodatnia dla większości podkategorii, ale Furniture ma najwięcej transakcji w okolicach zera lub na minusie.
+Wniosek: Technology jest stabilna i dochodowa, Furniture – zmienna i mniej rentowna.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -2404,6 +2426,13 @@ p1
 p2
 
 ```
+Analiza korelacji między poziomem rabatu a wartością sprzedaży wykazuje, że
+wynosi ona -0,05 – bardzo słaba, ale istotna statystycznie ujemna zależność.
+Oznacza to, że wyższe rabaty są minimalnie związane z niższą sprzedażą (lub odwrotnie – niższe rabaty z wyższą sprzedażą), ale efekt jest praktycznie pomijalny.
+Korelacja Spearmana między wysokością rabatu a zyskiem wynosi -0,54 – jest to umiarkowanie silna ujemna zależność, istotna statystycznie (p ≈ 0).
+Przedział ufności Cl₉₅%: [-0,55, -0,52] potwierdza stabilność tej negatywnej relacji.
+Oznacza to, że wyższe rabaty są wyraźnie związane z niższym zyskiem (i odwrotnie – niższe rabaty z wyższym zyskiem).
+
 
 ## 5.2. Regresja liniowa: wpływ rabatu na zysk
 
@@ -2441,6 +2470,9 @@ ggplot(dane, aes(x = Discount, y = Profit)) +
   theme_minimal()
 
 ```
+Większość transakcji skupia się w niskim zakresie zysków (blisko 0), co potwierdza wcześniejsze analizy – mediana zysku była niska, podczas że średnia była zawyżona przez nieliczne, bardzo wysokie zyski.
+Bardzo wysokie zyski (np. 20000–50000 $) występują rzadko (niskie wartości na osi liczby transakcji), co tłumaczy wysoką skośność i kurtozę w statystykach opisowych.
+Rozkład jest silnie prawostronnie skośny – większość masy rozkładu znajduje się po lewej stronie (niskie zyski), a prawy ogon (wysokie zyski) jest długi, ale cienki.
 
 ## Analiza korelacji rabat - zysk według regionów
 
@@ -2561,13 +2593,15 @@ korelacje_region %>%
     full_width = FALSE,
     position = "center"
   ) 
-
-# 4. WNIOSKI
-cat("1. Wszystkie regiony mają UJEMNĄ korelację rabat-zysk\n")
-cat("2. Central: najsilniejsza ujemna korelacja (r = ", 
-    korelacje_region$korelacja[korelacje_region$Region == "Central"], ")\n", sep="")
-cat("3. Rabaty szkodzą zyskowi w każdym regionie (im wyższy rabat = niższy zysk)\n")
 ```
+
+### Wnioski:
+
+Wszystkie regiony wykazują istotną statystycznie ujemną korelację między wysokością rabatu a zyskiem, co potwierdza, że wyższe rabaty są związane z niższymi zyskami. Siła tej zależności jest najsilniejsza w regionie South (r = -0,272), a najsłabsza w regionie West (r = -0,150). Regiony Central i East mają bardzo podobną, umiarkowanie ujemną korelację (odpowiednio -0,225 i -0,226).
+1. Rabaty obniżają zysk we wszystkich regionach – im wyższy rabat, tym niższy zysk.
+2. Region South jest najbardziej wrażliwy na rabaty – tutaj korelacja ujemna jest najsilniejsza, co oznacza, że nawet niewielkie zwiększenie rabatu może wyraźnie obniżyć rentowność.
+3. Region West jest stosunkowo najmniej wrażliwy – mimo ujemnej korelacji, zależność jest tu najsłabsza, co może sugerować, że inne czynniki (np. wielkość sprzedaży, mix produktowy) częściowo łagodzą negatywny wpływ rabatów na zysk.
+4. Polityka rabatowa wymaga zróżnicowania regionalnego – np. ograniczenie rabatów w regionie South mogłoby przynieść najszybszą poprawę rentowności, podczas gdy w West można pozwolić na nieco większą elastyczność.
 
 ## Analiza sezonowości dla sprzedaży
 
@@ -2614,6 +2648,7 @@ if(nrow(anova_sales_data) > 0) {
   }
 }
 ```
+Wynik wskazuje na brak statystycznie istotnych różnic w średniej sprzedaży między miesiącami. Oznacza to, że sezonowość nie wpływa w istotny sposób na poziom sprzedaży – wartości sprzedaży w poszczególnych miesiącach są na podobnym poziomie, a ewentualne różnice można uznać za losowe.
 
 ## Porównanie sezonowości zysku i sprzedaży
 
@@ -2774,7 +2809,15 @@ cat("Korelacja sprzedaż-zysk: ",
            "GŁÓWNIE DODATNIA", "GŁÓWNIE UJEMNA"),
     " (średnio: ", round(mean(correlation_table$correlation, na.rm = TRUE), 3), ")\n")
 ```
+### Wnioski
+Test ANOVA wykazał, że sezonowość nie wpływa istotnie na poziom sprzedaży. Jednak analiza korelacji między sprzedażą a zyskiem ujawnia wyraźne różnice między miesiącami pod względem efektywności marżowej.
 
+Średnia korelacja sprzedaż–zysk dla wszystkich miesięcy wynosi 0,509, co wskazuje na ogólną dodatnią zależność – wyższa sprzedaż przekłada się na wyższy zysk. Jednak siła tej zależności silnie waha się w zależności od miesiąca. Luty (r = 0,905), Październik (r = 0,876) i Maj (r = 0,753) charakteryzują się silną dodatnią korelacją, co oznacza, że wzrost sprzedaży w tych miesiącach w wysokim stopniu przekłada się na wzrost zysku. Z kolei Lipiec (r = 0,130) i Listopad (r = 0,193) wykazują bardzo słabą korelację, co sugeruje, że w tych okresach wzrost sprzedaży nie prowadzi do proporcjonalnego wzrostu zysku – prawdopodobnie z powodu agresywnej polityki rabatowej, wysokich kosztów lub niskomarżowego asortymentu.
+
+Pozostałe miesiące, takie jak Marzec, Kwiecień, Wrzesień czy Styczeń, odznaczają się słabą lub umiarkowaną dodatnią korelacją (r między 0,369 a 0,668).
+
+## Kluczowy wniosek:
+Chociaż sprzedaż jest stabilna w ciągu roku, efektywność marżowa jest sezonowo zróżnicowana. W miesiącach o wysokiej korelacji (Luty, Październik, Maj) warto skupić się na zwiększaniu wolumenu sprzedaży, ponieważ każda dodatkowa transakcja znacząco poprawia zysk. Natomiast w miesiącach o niskiej korelacji (Lipiec, Listopad) należy przeanalizować i zoptymalizować strukturę kosztów oraz politykę cenową, aby poprawić rentowność. Działania sprzedażowe powinny zatem uwzględniać nie tylko wolumen, ale także marżowość charakterystyczną dla danego okresu.
 ```{r echo=FALSE}
 
 ggbetweenstats(
