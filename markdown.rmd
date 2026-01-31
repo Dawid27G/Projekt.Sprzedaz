@@ -85,14 +85,26 @@ jakość analizy.
 
 ## 2.1. Ogólny przegląd braków danych
 
-Poniższy wykres przedstawia globalną wizualizację kompletności zbioru danych Superstore. Szary obszar reprezentuje obserwacje z kompletnymi danymi (Present > 98.9%), podczas gdy niewielkie czarne fragmenty wskazują na braki w danych (Missing < 0.1%). Każdy wiersz na wykresie odpowiada pojedynczej zmiennej, a każda kolumna reprezentuje kolejne obserwacje w zbiorze.
+Poniższy wykres przedstawia globalną wizualizację kompletności zbioru
+danych Superstore. Szary obszar reprezentuje obserwacje z kompletnymi
+danymi (Present \> 98.9%), podczas gdy niewielkie czarne fragmenty
+wskazują na braki w danych (Missing \< 0.1%). Każdy wiersz na wykresie
+odpowiada pojedynczej zmiennej, a każda kolumna reprezentuje kolejne
+obserwacje w zbiorze.
 
-Kluczowe obserwacje:
-- **Wysoka kompletność danych:** Ponad 98.9% wszystkich wartości w zbiorze jest dostępnych, co świadczy o bardzo dobrej jakości danych źródłowych
-- **Marginalne braki:** Braki danych stanowią mniej niż 1% całego zbioru, co jest doskonałym wynikiem dla danych transakcyjnych
-- **Koncentracja braków:** Czarne linie widoczne w górnej części wykresu wskazują, że braki koncentrują się w określonych zmiennych (prawdopodobnie Discount, Profit oraz dane adresowe), podczas gdy większość zmiennych jest w pełni kompletna
-- **Losowy rozkład:** Braki wydają się być rozłożone losowo wzdłuż obserwacji, co sugeruje brak systematycznego wzorca utraty danych związanego z czasem lub procesem zbierania danych
-- **Gotowość do analizy:** Minimalny odsetek braków i ich niesystematyczny charakter potwierdzają, że zbiór nadaje się do dalszej analizy po zastosowaniu odpowiednich technik imputacji
+Kluczowe obserwacje: - **Wysoka kompletność danych:** Ponad 98.9%
+wszystkich wartości w zbiorze jest dostępnych, co świadczy o bardzo
+dobrej jakości danych źródłowych - **Marginalne braki:** Braki danych
+stanowią mniej niż 1% całego zbioru, co jest doskonałym wynikiem dla
+danych transakcyjnych - **Koncentracja braków:** Czarne linie widoczne w
+górnej części wykresu wskazują, że braki koncentrują się w określonych
+zmiennych (prawdopodobnie Discount, Profit oraz dane adresowe), podczas
+gdy większość zmiennych jest w pełni kompletna - **Losowy rozkład:**
+Braki wydają się być rozłożone losowo wzdłuż obserwacji, co sugeruje
+brak systematycznego wzorca utraty danych związanego z czasem lub
+procesem zbierania danych - **Gotowość do analizy:** Minimalny odsetek
+braków i ich niesystematyczny charakter potwierdzają, że zbiór nadaje
+się do dalszej analizy po zastosowaniu odpowiednich technik imputacji
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width='50%'}
 vis_miss(dane)
@@ -100,14 +112,27 @@ vis_miss(dane)
 
 ## 2.2. Rozkład braków według zmiennych
 
-Poniższy wykres słupkowy przedstawia liczbę brakujących wartości (missing values) w każdej zmiennej zbioru danych. Długość słupka odpowiada liczbie obserwacji z brakami. Zmienne są posortowane malejąco według liczby braków, co pozwala na szybką identyfikację najbardziej problematycznych kolumn.
+Poniższy wykres słupkowy przedstawia liczbę brakujących wartości
+(missing values) w każdej zmiennej zbioru danych. Długość słupka
+odpowiada liczbie obserwacji z brakami. Zmienne są posortowane malejąco
+według liczby braków, co pozwala na szybką identyfikację najbardziej
+problematycznych kolumn.
 
-Kluczowe obserwacje:
-- **Profit i Discount - istotne braki finansowe:** Zmienne związane z zyskami i rabatami wykazują znaczną liczbę braków, co jest krytyczne dla analizy rentowności i wymaga zaawansowanych technik imputacji
-- **Dane adresowe - równomierne braki:** City i State wykazują podobną liczbę braków, co sugeruje, że braki w danych adresowych mogą występować razem w tych samych obserwacjach
-- **Order Date i Ship Date - marginalne braki:** Daty mają umiarkowaną liczbę braków, które mogą być imputowane na podstawie logiki biznesowej (mediana czasu dostawy)
-- **Większość zmiennych kompletna:** Wiele zmiennych nie ma braków wcale (Sales, Quantity, Category, Sub-Category, Region, Product ID, Order ID, Customer ID), co potwierdza ogólną dobrą jakość danych
-- **Wymiar problemu:** Koncentracja braków w kilku kluczowych zmiennych (Postal Code, Profit, Discount, City, State) oznacza, że strategia imputacji powinna być priorytetowo skierowana na te obszary, podczas gdy reszta zbioru pozostaje w pełni użyteczna
+Kluczowe obserwacje: - **Profit i Discount - istotne braki finansowe:**
+Zmienne związane z zyskami i rabatami wykazują znaczną liczbę braków, co
+jest krytyczne dla analizy rentowności i wymaga zaawansowanych technik
+imputacji - **Dane adresowe - równomierne braki:** City i State wykazują
+podobną liczbę braków, co sugeruje, że braki w danych adresowych mogą
+występować razem w tych samych obserwacjach - **Order Date i Ship Date -
+marginalne braki:** Daty mają umiarkowaną liczbę braków, które mogą być
+imputowane na podstawie logiki biznesowej (mediana czasu dostawy) -
+**Większość zmiennych kompletna:** Wiele zmiennych nie ma braków wcale
+(Sales, Quantity, Category, Sub-Category, Region, Product ID, Order ID,
+Customer ID), co potwierdza ogólną dobrą jakość danych - **Wymiar
+problemu:** Koncentracja braków w kilku kluczowych zmiennych (Postal
+Code, Profit, Discount, City, State) oznacza, że strategia imputacji
+powinna być priorytetowo skierowana na te obszary, podczas gdy reszta
+zbioru pozostaje w pełni użyteczna
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width='50%'}
 gg_miss_var(dane) +
@@ -116,14 +141,26 @@ gg_miss_var(dane) +
 
 ## 2.3. Rozkład braków w obserwacjach
 
-Poniższy wykres pokazuje liczbę brakujących wartości w każdej obserwacji (wierszu) zbioru danych. Oś X reprezentuje liczbę braków w każdym wierszu, a oś Y pokazuje kolejne obserwacje. Długość horyzontalnego paska dla każdej obserwacji odpowiada liczbie brakujących danych w tym wierszu.
+Poniższy wykres pokazuje liczbę brakujących wartości w każdej obserwacji
+(wierszu) zbioru danych. Oś X reprezentuje liczbę braków w każdym
+wierszu, a oś Y pokazuje kolejne obserwacje. Długość horyzontalnego
+paska dla każdej obserwacji odpowiada liczbie brakujących danych w tym
+wierszu.
 
-Kluczowe obserwacje:
-- **Większość wierszy kompletnych:** Zdecydowana większość obserwacji (te na górze wykresu) ma bardzo mało braków - prawie zerową liczbę brakujących wartości, co świadczy o dobrej kompletności danych
-- **Rozrzedzenie braków:** Braki są rozproszone po poszczególnych wierszach, a nie skupione w kilku obserwacjach, co oznacza, że żaden wiersz nie jest "całkowicie nieużyteczny"
-- **Maksymalnie około 1-2 braki na wiersz:** Nawet wiersze z największą liczbą braków mają poniżej 2 brakujących wartości, co jest bardzo dobrym wynikiem
-- **Brak wzorca systematycznego:** Rozłożenie braków wzdłuż osi Y wskazuje, że braki nie są skoncentrowane w określonej części zbioru danych (np. na początku lub końcu)
-- **Łatwa imputacja:** Ta struktura braków czyni imputację stosunkowo prostą - większość wierszy będzie można użyć bez jakichkolwiek modyfikacji, a dla tych kilku z brakami wystarczą proste strategie uzupełnienia
+Kluczowe obserwacje: - **Większość wierszy kompletnych:** Zdecydowana
+większość obserwacji (te na górze wykresu) ma bardzo mało braków -
+prawie zerową liczbę brakujących wartości, co świadczy o dobrej
+kompletności danych - **Rozrzedzenie braków:** Braki są rozproszone po
+poszczególnych wierszach, a nie skupione w kilku obserwacjach, co
+oznacza, że żaden wiersz nie jest "całkowicie nieużyteczny" -
+**Maksymalnie około 1-2 braki na wiersz:** Nawet wiersze z największą
+liczbą braków mają poniżej 2 brakujących wartości, co jest bardzo dobrym
+wynikiem - **Brak wzorca systematycznego:** Rozłożenie braków wzdłuż osi
+Y wskazuje, że braki nie są skoncentrowane w określonej części zbioru
+danych (np. na początku lub końcu) - **Łatwa imputacja:** Ta struktura
+braków czyni imputację stosunkowo prostą - większość wierszy będzie
+można użyć bez jakichkolwiek modyfikacji, a dla tych kilku z brakami
+wystarczą proste strategie uzupełnienia
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width='50%'}
 gg_miss_case(dane) +
@@ -132,32 +169,56 @@ gg_miss_case(dane) +
 
 ## 2.4. Kombinacje braków danych - Upset Plot
 
-Poniższy diagram "UpSet" pokazuje, które zmienne mają braki jednocześnie, czyli jakie kombinacje braków danych występują razem. Lewy panel (słupki poziome) pokazuje liczebność poszczególnych braków, a górny panel (słupki pionowe) pokazuje, ile obserwacji ma konkretną kombinację braków. Linie łączące słupki wskazują, które zmienne brakują razem.
+Poniższy diagram "UpSet" pokazuje, które zmienne mają braki
+jednocześnie, czyli jakie kombinacje braków danych występują razem. Lewy
+panel (słupki poziome) pokazuje liczebność poszczególnych braków, a
+górny panel (słupki pionowe) pokazuje, ile obserwacji ma konkretną
+kombinację braków. Linie łączące słupki wskazują, które zmienne brakują
+razem.
 
-Kluczowe obserwacje:
-- **Shop Mode NA dominuje:** Braki w zmiennej Shop Mode (dostaw) są najczęstsze i najczęściej pojawią się samodzielnie (bez innych braków)
-- **Quantity NA - druga na liście:** Ilość produktów ma drugą co do liczby braków, również głównie niezależnie od innych zmiennych
-- **Profit NA - trzeci:** Braki w zysku pojawiają się na trzecim miejscu i również często bez towarzystwa innych braków
-- **Sub-Category i Discount - rzadsze braki:** Te zmienne mają mniej braków niż poprzednie
-- **Niska współzależność braków:** Brak wyraźnych pionowych linii łączących oznacza, że braki raczej nie kumulują się - czyli jeśli brakuje wartości w Shop Mode, to nie znaczy że będą braki w Quantity czy Profit
-- **Imputacja niezależna:** Taka struktura braków sugeruje, że każdą zmienną można imputować niezależnie, bez konieczności rozpatrywania złożonych zależności między brakami
+Kluczowe obserwacje: - **Shop Mode NA dominuje:** Braki w zmiennej Shop
+Mode (dostaw) są najczęstsze i najczęściej pojawią się samodzielnie (bez
+innych braków) - **Quantity NA - druga na liście:** Ilość produktów ma
+drugą co do liczby braków, również głównie niezależnie od innych
+zmiennych - **Profit NA - trzeci:** Braki w zysku pojawiają się na
+trzecim miejscu i również często bez towarzystwa innych braków -
+**Sub-Category i Discount - rzadsze braki:** Te zmienne mają mniej
+braków niż poprzednie - **Niska współzależność braków:** Brak wyraźnych
+pionowych linii łączących oznacza, że braki raczej nie kumulują się -
+czyli jeśli brakuje wartości w Shop Mode, to nie znaczy że będą braki w
+Quantity czy Profit - **Imputacja niezależna:** Taka struktura braków
+sugeruje, że każdą zmienną można imputować niezależnie, bez konieczności
+rozpatrywania złożonych zależności między brakami
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width='50%'}
 gg_miss_upset(dane)
 ```
 
-
 ## 2.5. Wzory braków danych - Pattern Matrix
 
-Poniższy diagram "md.pattern" przedstawia macierz wzorów braków danych. Każdy wiersz reprezentuje inny wzór braków (kombinację kompletnych i brakujących wartości), a każda kolumna reprezentuje zmienną. Niebieskie kwadraty oznaczają dane dostępne (present), a różowe/czerwone oznaczają braki. Liczby po lewej stronie pokazują, ile obserwacji ma dany wzór braków, a liczby na dole pokazują łączną liczbę braków w każdej zmiennej.
+Poniższy diagram "md.pattern" przedstawia macierz wzorów braków danych.
+Każdy wiersz reprezentuje inny wzór braków (kombinację kompletnych i
+brakujących wartości), a każda kolumna reprezentuje zmienną. Niebieskie
+kwadraty oznaczają dane dostępne (present), a różowe/czerwone oznaczają
+braki. Liczby po lewej stronie pokazują, ile obserwacji ma dany wzór
+braków, a liczby na dole pokazują łączną liczbę braków w każdej
+zmiennej.
 
-Kluczowe obserwacje:
-- **Dominacja kompletnych obserwacji:** Pierwszy wiersz (9933 obserwacji) reprezentuje dane całkowicie kompletne - prawie wszystkie wiersze należą do tej grupy
-- **Minimalna liczba wzorów braków:** Tylko kilka alternatywnych wzorów braków pojawia się w zbiorze, co oznacza niesystematyczne braki - nie ma jednego dominującego wzoru
-- **Rzadkie kumulacje braków:** Żaden wzór braku nie ma więcej niż kilka obserwacji, co potwierdza, że braki są rozrzedzane po zbiorze
-- **Braki w różnych zmiennych:** Różowe pola pojawiają się w różnych kolumnach dla różnych wierszy, wskazując, że braki nie kumulują się w tych samych obserwacjach
-- **Łatwa interpretacja:** Dolna linia pokazuje, że niektóre zmienne (te po prawej) mają braki, podczas gdy inne (po lewej) są całkowicie kompletne
-- **Skuteczność imputacji:** Ta struktura sugeruje, że imputacja będzie prosta - większość danych można wykorzystać bez zmian, a dla kilku wierszy z brakami wystarczy zastosować odpowiednie strategie uzupełnienia
+Kluczowe obserwacje: - **Dominacja kompletnych obserwacji:** Pierwszy
+wiersz (9933 obserwacji) reprezentuje dane całkowicie kompletne - prawie
+wszystkie wiersze należą do tej grupy - **Minimalna liczba wzorów
+braków:** Tylko kilka alternatywnych wzorów braków pojawia się w
+zbiorze, co oznacza niesystematyczne braki - nie ma jednego dominującego
+wzoru - **Rzadkie kumulacje braków:** Żaden wzór braku nie ma więcej niż
+kilka obserwacji, co potwierdza, że braki są rozrzedzane po zbiorze -
+**Braki w różnych zmiennych:** Różowe pola pojawiają się w różnych
+kolumnach dla różnych wierszy, wskazując, że braki nie kumulują się w
+tych samych obserwacjach - **Łatwa interpretacja:** Dolna linia
+pokazuje, że niektóre zmienne (te po prawej) mają braki, podczas gdy
+inne (po lewej) są całkowicie kompletne - **Skuteczność imputacji:** Ta
+struktura sugeruje, że imputacja będzie prosta - większość danych można
+wykorzystać bez zmian, a dla kilku wierszy z brakami wystarczy
+zastosować odpowiednie strategie uzupełnienia
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width='50%'}
 md.pattern(dane)
@@ -165,38 +226,39 @@ md.pattern(dane)
 
 ## 2.6. Mechanizm braków danych - Wnioski z analizy
 
-Na podstawie kompleksowej analizy wszystkich powyższych wykresów możemy stwierdzić, że braki danych w zbiorze Superstore mają charakter **MCAR (Missing Completely At Random)**. Dowodami na to są:
+Na podstawie kompleksowej analizy wszystkich powyższych wykresów możemy
+stwierdzić, że braki danych w zbiorze Superstore mają charakter **MCAR
+(Missing Completely At Random)**. Dowodami na to są:
 
-**Ze wzoru vis_miss (2.1):**
-- Braki rozproszone losowo po całej matrycy bez skupień czy wzorów
-- Brak systematycznego trendu braków na osi czasowej/wierszy
+**Ze wzoru vis_miss (2.1):** - Braki rozproszone losowo po całej matrycy
+bez skupień czy wzorów - Brak systematycznego trendu braków na osi
+czasowej/wierszy
 
-**Ze wzoru gg_miss_var (2.2):**
-- Różne zmienne mają różne liczby braków (Discount, Profit, City, State) - nie ma jednego źródła problemu
-- Braki są niezależne dla każdej zmiennej
+**Ze wzoru gg_miss_var (2.2):** - Różne zmienne mają różne liczby braków
+(Discount, Profit, City, State) - nie ma jednego źródła problemu - Braki
+są niezależne dla każdej zmiennej
 
-**Ze wzoru gg_miss_case (2.3):**
-- Maksymalnie 1-2 braki na obserwację (żaden wiersz nie ma wielu braków jednocześnie)
-- Braki nie kumulują się w tych samych obserwacjach
-- Rozpylenie braków wskazuje na niezależność mechanizmu
+**Ze wzoru gg_miss_case (2.3):** - Maksymalnie 1-2 braki na obserwację
+(żaden wiersz nie ma wielu braków jednocześnie) - Braki nie kumulują się
+w tych samych obserwacjach - Rozpylenie braków wskazuje na niezależność
+mechanizmu
 
-**Ze wzoru gg_miss_upset (2.4):**
-- Dominujące są pojedyncze braki w zmiennych, a nie kombinacje
-- Brak wyraźnych "łańcuszków" braków (braki jednej zmiennej nie powodują braków w innej)
-- Niska współzależność między brakami potwierdza ich niezależność
+**Ze wzoru gg_miss_upset (2.4):** - Dominujące są pojedyncze braki w
+zmiennych, a nie kombinacje - Brak wyraźnych "łańcuszków" braków (braki
+jednej zmiennej nie powodują braków w innej) - Niska współzależność
+między brakami potwierdza ich niezależność
 
-**Ze wzoru md.pattern (2.5):**
-- 9933 obserwacji w pełni kompletnych vs zaledwie kilka alternatywnych wzorów
-- Każdy alternatywny wzór braku pojawia się zaledwie kilka razy
-- Wzory są różnorodne, co wskazuje na losowość
+**Ze wzoru md.pattern (2.5):** - 9933 obserwacji w pełni kompletnych vs
+zaledwie kilka alternatywnych wzorów - Każdy alternatywny wzór braku
+pojawia się zaledwie kilka razy - Wzory są różnorodne, co wskazuje na
+losowość
 
-**Konsekwencje dla imputacji:**
-MCAR to najkorzystniejszy typ mechanizmu braków, ponieważ:
-- Braki są całkowicie niezależne od danych i wartości zmiennych
-- Możemy bezpiecznie stosować zaawansowane metody imputacji (MICE, hot-deck, PMM)
-- Wyniki analiz nie będą obciążone odchyleniami wynikającymi z selektywnych braków
-- Nie ma potrzeby stosowania zawiłych procedur wagowania czy korekcji błędu systematycznego
-
+**Konsekwencje dla imputacji:** MCAR to najkorzystniejszy typ mechanizmu
+braków, ponieważ: - Braki są całkowicie niezależne od danych i wartości
+zmiennych - Możemy bezpiecznie stosować zaawansowane metody imputacji
+(MICE, hot-deck, PMM) - Wyniki analiz nie będą obciążone odchyleniami
+wynikającymi z selektywnych braków - Nie ma potrzeby stosowania zawiłych
+procedur wagowania czy korekcji błędu systematycznego
 
 ```{r include=FALSE}
 
@@ -349,18 +411,29 @@ head(dane)
 
 # 3. Wizualicje danych
 
-# 3. PYTANIE BADAWCZE #1: Jaki wpływ mają rabaty na zysk?
+## 3.1. PYTANIE BADAWCZE 1: Jaki wpływ mają rabaty na zysk?
 
-## 3.6. Rozkład rabatów w transakcjach
+### Rozkład rabatów w transakcjach
 
-Poniższy histogram prezentuje rozkład wartości rabatów zastosowanych w transakcjach. Analiza struktury rabatów jest kluczowa dla zrozumienia polityki cenowej i jej wpływu na rentowność, odpowiadając bezpośrednio na pytanie badawcze #1: *"Jaki wpływ mają rabaty na zysk – czy większy rabat zawsze zwiększa sprzedaż kosztem rentowności?"*
+Poniższy histogram prezentuje rozkład wartości rabatów zastosowanych w
+transakcjach. Analiza struktury rabatów jest kluczowa dla zrozumienia
+polityki cenowej i jej wpływu na rentowność, odpowiadając bezpośrednio
+na pytanie badawcze #1: *"Jaki wpływ mają rabaty na zysk – czy większy
+rabat zawsze zwiększa sprzedaż kosztem rentowności?"*
 
-Kluczowe obserwacje:
-- **Dominacja transakcji bez rabatu:** Około 4800 transakcji (ponad 50%) odbyło się bez jakiegokolwiek rabatu (Discount = 0), co wskazuje na silną bazę klientów kupujących po pełnej cenie
-- **Koncentracja na 20% rabacie:** Druga najliczniejsza grupa (~3600 transakcji) to rabat 20%, co sugeruje standardową politykę promocyjną
-- **Rzadkie rabaty ekstremalne:** Rabaty powyżej 30% są znacznie rzadsze (<500 transakcji każdy), co wskazuje na selektywne stosowanie głębokich przecen
-- **Bimodalna dystrybucja:** Wyraźne dwa szczyty (0% i 20%) sugerują dwie odrębne strategie sprzedażowe: sprzedaż po cenie katalogowej i sprzedaż promocyjna
-- **Potencjał optymalizacji:** Niska częstotliwość rabatów pośrednich (5-15%) może wskazywać na brak elastycznej polityki cenowej, która mogłaby lepiej reagować na różne segmenty klientów
+Kluczowe obserwacje: - **Dominacja transakcji bez rabatu:** Około 4800
+transakcji (ponad 50%) odbyło się bez jakiegokolwiek rabatu (Discount =
+0), co wskazuje na silną bazę klientów kupujących po pełnej cenie -
+**Koncentracja na 20% rabacie:** Druga najliczniejsza grupa (\~3600
+transakcji) to rabat 20%, co sugeruje standardową politykę promocyjną -
+**Rzadkie rabaty ekstremalne:** Rabaty powyżej 30% są znacznie rzadsze
+(\<500 transakcji każdy), co wskazuje na selektywne stosowanie głębokich
+przecen - **Bimodalna dystrybucja:** Wyraźne dwa szczyty (0% i 20%)
+sugerują dwie odrębne strategie sprzedażowe: sprzedaż po cenie
+katalogowej i sprzedaż promocyjna - **Potencjał optymalizacji:** Niska
+częstotliwość rabatów pośrednich (5-15%) może wskazywać na brak
+elastycznej polityki cenowej, która mogłaby lepiej reagować na różne
+segmenty klientów
 
 ```{r, echo = FALSE}
 # Rozkład rabatów
@@ -377,16 +450,34 @@ plot_ly(
   )
 ```
 
-## 3.9. Macierz korelacji zmiennych kluczowych
+### Macierz korelacji zmiennych kluczowych
 
-Poniższa macierz korelacji prezentuje związki statystyczne między czterema kluczowymi zmiennymi biznesowymi: Discount (rabat), Quantity (ilość), Sales (sprzedaż) i Profit (zysk). Wartości w komórkach pokazują siłę i kierunek korelacji (od -1 do +1), gdzie wartości bliskie -1 oznaczają silną korelację ujemną, wartości bliskie +1 silną korelację dodatnią, a wartości bliskie 0 brak związku. Gwiazdki (*, **, ***) oznaczają istotność statystyczną korelacji. Analiza ta jest kluczowa dla wszystkich pytań badawczych, szczególnie #1: *"Jaki wpływ mają rabaty na zysk?"*
+Poniższa macierz korelacji prezentuje związki statystyczne między
+czterema kluczowymi zmiennymi biznesowymi: Discount (rabat), Quantity
+(ilość), Sales (sprzedaż) i Profit (zysk). Wartości w komórkach pokazują
+siłę i kierunek korelacji (od -1 do +1), gdzie wartości bliskie -1
+oznaczają silną korelację ujemną, wartości bliskie +1 silną korelację
+dodatnią, a wartości bliskie 0 brak związku. Gwiazdki (*, **,*** )
+oznaczają istotność statystyczną korelacji. Analiza ta jest kluczowa dla
+wszystkich pytań badawczych, szczególnie #1: *"Jaki wpływ mają rabaty na
+zysk?"*
 
-Kluczowe obserwacje:
-- **Rabat niszczy zysk:** Discount ma silną ujemną korelację z Profit (-0.22***), co oznacza, że wyższe rabaty są silnie powiązane z niższym zyskiem – to potwierdza problem z polityką rabatową
-- **Sprzedaż nie równa się zysk:** Sales ma umiarkowaną pozytywną korelację z Profit (0.48***), co jest wartością niższą niż można by oczekiwać – wskazuje to, że sama wysokość sprzedaży nie gwarantuje proporcjonalnego zysku
-- **Ilość nie kompensuje rabatów:** Quantity ma bardzo słabą korelację z Profit (0.07***), co sugeruje, że zwiększenie ilości sprzedanych produktów nie jest efektywną strategią kompensacji rabatów
-- **Rabaty nie zwiększają znacząco sprzedaży:** Discount ma słabą ujemną korelację z Sales (-0.03**), co jest zaskakujące – głębsze rabaty nie prowadzą do znaczącego wzrostu wartości sprzedaży
-- **Paradoks rabatowy:** Brak silnej pozytywnej korelacji między rabatem a sprzedażą przy jednoczesnej silnej ujemnej korelacji z zyskiem sugeruje, że obecna polityka rabatowa jest nieefektywna – firma traci zysk bez znaczącego zwiększenia przychodów
+Kluczowe obserwacje: - **Rabat niszczy zysk:** Discount ma silną ujemną
+korelację z Profit (-0.22***), co oznacza, że wyższe rabaty są silnie
+powiązane z niższym zyskiem – to potwierdza problem z polityką rabatową
+-** Sprzedaż nie równa się zysk: **Sales ma umiarkowaną pozytywną
+korelację z Profit (0.48***), co jest wartością niższą niż można by
+oczekiwać – wskazuje to, że sama wysokość sprzedaży nie gwarantuje
+proporcjonalnego zysku - **Ilość nie kompensuje rabatów:** Quantity ma
+bardzo słabą korelację z Profit (0.07\***), co sugeruje, że zwiększenie
+ilości sprzedanych produktów nie jest efektywną strategią kompensacji
+rabatów -** Rabaty nie zwiększają znacząco sprzedaży: **Discount ma
+słabą ujemną korelację z Sales (-0.03**), co jest zaskakujące – głębsze
+rabaty nie prowadzą do znaczącego wzrostu wartości sprzedaży -
+**Paradoks rabatowy:** Brak silnej pozytywnej korelacji między rabatem a
+sprzedażą przy jednoczesnej silnej ujemnej korelacji z zyskiem sugeruje,
+że obecna polityka rabatowa jest nieefektywna – firma traci zysk bez
+znaczącego zwiększenia przychodów
 
 ```{r, echo = FALSE}
 # Macierz korelacji
@@ -427,20 +518,41 @@ for (i in 2:n) {
 }
 ```
 
-## 3.13. Wpływ rabatów na rentowność: analiza wielowymiarowa
+### Wpływ rabatów na rentowność: analiza wielowymiarowa
 
-Poniższe cztery wizualizacje przedstawiają kompleksową analizę wpływu rabatów na kluczowe metryki biznesowe: marżę zysku, liczbę zamówień, udział w całkowitym zysku oraz średnią wartość zakupu. Transakcje zostały pogrupowane w sześć kategorii według wysokości rabatu, co pozwala na precyzyjne zidentyfikowanie punktu krytycznego, w którym rabaty przestają być opłacalne. Analiza ta bezpośrednio odpowiada na pytanie badawcze #1: *"Jaki wpływ mają rabaty na zysk – czy większy rabat zawsze zwiększa sprzedaż kosztem rentowności?"*
+Poniższe cztery wizualizacje przedstawiają kompleksową analizę wpływu
+rabatów na kluczowe metryki biznesowe: marżę zysku, liczbę zamówień,
+udział w całkowitym zysku oraz średnią wartość zakupu. Transakcje
+zostały pogrupowane w sześć kategorii według wysokości rabatu, co
+pozwala na precyzyjne zidentyfikowanie punktu krytycznego, w którym
+rabaty przestają być opłacalne. Analiza ta bezpośrednio odpowiada na
+pytanie badawcze #1: *"Jaki wpływ mają rabaty na zysk – czy większy
+rabat zawsze zwiększa sprzedaż kosztem rentowności?"*
 
 ### Średnia marża zysku według poziomu rabatu
 
-Poniższy wykres słupkowy przedstawia średnią marżę zysku (w procentach) dla każdej grupy rabatowej. Kolor słupka sygnalizuje rentowność: zielony oznacza zysk, czerwony stratę. Ta wizualizacja jasno pokazuje punkt krytyczny, w którym rabaty przekształcają się z narzędzia marketingowego w źródło strat finansowych.
+Poniższy wykres słupkowy przedstawia średnią marżę zysku (w procentach)
+dla każdej grupy rabatowej. Kolor słupka sygnalizuje rentowność: zielony
+oznacza zysk, czerwony stratę. Ta wizualizacja jasno pokazuje punkt
+krytyczny, w którym rabaty przekształcają się z narzędzia marketingowego
+w źródło strat finansowych.
 
-Kluczowe obserwacje:
-- **Próg opłacalności:** Wyraźna granica rentowności znajduje się między 11-20% a 21-30% rabatem – pierwsze dwie grupy generują zysk (33.7% i 17.5% marży), podczas gdy wszystkie kolejne są w strefie strat
-- **Dramatyczny spadek:** Marża spada z +17.5% (11-20%) do -11.5% (21-30%), co oznacza spadek o prawie 30 punktów procentowych przy zwiększeniu rabatu o zaledwie ~10%, wskazując na nieliniowy wpływ rabatów
-- **Katastrofa ekstremalnych rabatów:** Grupa rabatów >50% wykazuje marżę -114%, co oznacza, że firma traci więcej niż cała wartość sprzedaży – każda taka transakcja jest dramatycznie nierentowna
-- **Bezpieczna strefa:** Transakcje z rabatem 0-10% mają najbardziej zdrową marżę 33.7%, co sugeruje, że firma ma solidne podstawy marżowe, które są niszczone przez agresywną politykę rabatową
-- **Rekomendacja:** Rabaty powyżej 20% powinny być całkowicie wyeliminowane lub stosowane wyłącznie w wyjątkowych sytuacjach strategicznych z jasnym uzasadnieniem biznesowym (np. likwidacja zapasów, pozyskanie kluczowego klienta)
+Kluczowe obserwacje: - **Próg opłacalności:** Wyraźna granica
+rentowności znajduje się między 11-20% a 21-30% rabatem – pierwsze dwie
+grupy generują zysk (33.7% i 17.5% marży), podczas gdy wszystkie kolejne
+są w strefie strat - **Dramatyczny spadek:** Marża spada z +17.5%
+(11-20%) do -11.5% (21-30%), co oznacza spadek o prawie 30 punktów
+procentowych przy zwiększeniu rabatu o zaledwie \~10%, wskazując na
+nieliniowy wpływ rabatów - **Katastrofa ekstremalnych rabatów:** Grupa
+rabatów \>50% wykazuje marżę -114%, co oznacza, że firma traci więcej
+niż cała wartość sprzedaży – każda taka transakcja jest dramatycznie
+nierentowna - **Bezpieczna strefa:** Transakcje z rabatem 0-10% mają
+najbardziej zdrową marżę 33.7%, co sugeruje, że firma ma solidne
+podstawy marżowe, które są niszczone przez agresywną politykę rabatową -
+**Rekomendacja:** Rabaty powyżej 20% powinny być całkowicie
+wyeliminowane lub stosowane wyłącznie w wyjątkowych sytuacjach
+strategicznych z jasnym uzasadnieniem biznesowym (np. likwidacja
+zapasów, pozyskanie kluczowego klienta)
 
 ```{r, echo = FALSE}
 # Przygotowanie danych rabatów - jeśli wcześniej nie było
@@ -516,14 +628,28 @@ plot_ly(
 
 ### Liczba zamówień według poziomu rabatu
 
-Poniższy wykres liniowy pokazuje rozkład liczby zamówień w poszczególnych grupach rabatowych. Kształt krzywej ujawnia faktyczną strategię rabatową firmy i pozwala ocenić, czy rabaty są stosowane strategicznie czy chaotycznie.
+Poniższy wykres liniowy pokazuje rozkład liczby zamówień w
+poszczególnych grupach rabatowych. Kształt krzywej ujawnia faktyczną
+strategię rabatową firmy i pozwala ocenić, czy rabaty są stosowane
+strategicznie czy chaotycznie.
 
-Kluczowe obserwacje:
-- **Dominacja niskich rabatów:** Grupy 0-10% (~4900 zamówień) i 11-20% (~3700 zamówień) stanowią łącznie około 86% wszystkich transakcji, co jest pozytywnym sygnałem - większość klientów kupuje przy niskiej lub zerowej obniżce
-- **Przepaść po 20%:** Dramatyczny spadek do ~250 zamówień w grupach 21-30% i 31-40% wskazuje, że firma rzadko stosuje średnie rabaty - to sugeruje brak elastycznej polityki cenowej i negocjacji
-- **Anomalia ekstremalnych rabatów:** Niespodziewany wzrost do ~900 zamówień w grupie >50% jest niepokojący - tak głębokie rabaty (które generują -114% marży) nie powinny występować tak często, chyba że są to akcje likwidacji zapasów
-- **Strategia binarna:** Rozkład pokazuje podejście "wszystko albo nic" - albo pełna/prawie pełna cena (~4900), albo standardowa promocja 20% (~3700), albo ekstremalna wyprzedaż (~900), bez płynnych przejść
-- **Problem kontroli:** Fakt, że 900 transakcji odbyło się z rabatami >50% (każda generująca ogromną stratę) wskazuje na brak procedur autoryzacji głębokich rabatów lub celowe akcje, które wymagają szczegółowej analizy uzasadnienia biznesowego
+Kluczowe obserwacje: - **Dominacja niskich rabatów:** Grupy 0-10%
+(\~4900 zamówień) i 11-20% (\~3700 zamówień) stanowią łącznie około 86%
+wszystkich transakcji, co jest pozytywnym sygnałem - większość klientów
+kupuje przy niskiej lub zerowej obniżce - **Przepaść po 20%:**
+Dramatyczny spadek do \~250 zamówień w grupach 21-30% i 31-40% wskazuje,
+że firma rzadko stosuje średnie rabaty - to sugeruje brak elastycznej
+polityki cenowej i negocjacji - **Anomalia ekstremalnych rabatów:**
+Niespodziewany wzrost do \~900 zamówień w grupie \>50% jest
+niepokojący - tak głębokie rabaty (które generują -114% marży) nie
+powinny występować tak często, chyba że są to akcje likwidacji zapasów -
+**Strategia binarna:** Rozkład pokazuje podejście "wszystko albo nic" -
+albo pełna/prawie pełna cena (\~4900), albo standardowa promocja 20%
+(\~3700), albo ekstremalna wyprzedaż (\~900), bez płynnych przejść -
+**Problem kontroli:** Fakt, że 900 transakcji odbyło się z rabatami
+\>50% (każda generująca ogromną stratę) wskazuje na brak procedur
+autoryzacji głębokich rabatów lub celowe akcje, które wymagają
+szczegółowej analizy uzasadnienia biznesowego
 
 ```{r, echo = FALSE}
 plot_ly(
@@ -549,14 +675,28 @@ plot_ly(
 
 ### Udział w całkowitym zysku według poziomu rabatu
 
-Poniższy wykres słupkowy pokazuje, jaki procent całkowitego zysku firmy generuje każda grupa rabatowa. Wartości powyżej 100% w sumie wskazują, że niektóre grupy muszą mieć ujemny udział - czyli faktycznie odejmują od zysku. Ta wizualizacja ujawnia dramatyczną prawdę o kosztach rabatów dla rentowności całej firmy.
+Poniższy wykres słupkowy pokazuje, jaki procent całkowitego zysku firmy
+generuje każda grupa rabatowa. Wartości powyżej 100% w sumie wskazują,
+że niektóre grupy muszą mieć ujemny udział - czyli faktycznie odejmują
+od zysku. Ta wizualizacja ujawnia dramatyczną prawdę o kosztach rabatów
+dla rentowności całej firmy.
 
-Kluczowe obserwacje:
-- **Dominacja grupy 0-10%:** Transakcje z najniższymi rabatami generują aż 115% całkowitego zysku firmy, co oznacza, że bez nich firma w ogóle nie byłaby rentowna - to fundamentalny filar biznesu
-- **Wkład grupy 11-20%:** Druga grupa odpowiada za 32% zysku, co łącznie z grupą 0-10% daje ~147% - czyli prawie 1.5x więcej niż faktyczny zysk firmy, ponieważ pozostałe grupy go zmniejszają
-- **Niszczyciele wartości:** Grupy 21-30%, 31-40% i 41-50% mają ujemny udział (około -4% do -7% każda), co oznacza, że każda transakcja w tych przedziałach aktywnie zmniejsza całkowity zysk firmy
-- **Katastrofa >50%:** Grupa ekstremalnych rabatów zabiera -27% całkowitego zysku, co przy 900 transakcjach w tej grupie oznacza systematyczne niszczenie wartości na dużą skalę
-- **Efekt kompensacji:** Wykres jasno pokazuje, że rentowność firmy opiera się wyłącznie na dwóch pierwszych grupach (0-20% rabatu), które muszą "wyrabiać" stratę generowaną przez wszystkie głębsze rabaty - to niezrównoważony model biznesowy wymagający natychmiastowej interwencji
+Kluczowe obserwacje: - **Dominacja grupy 0-10%:** Transakcje z
+najniższymi rabatami generują aż 115% całkowitego zysku firmy, co
+oznacza, że bez nich firma w ogóle nie byłaby rentowna - to
+fundamentalny filar biznesu - **Wkład grupy 11-20%:** Druga grupa
+odpowiada za 32% zysku, co łącznie z grupą 0-10% daje \~147% - czyli
+prawie 1.5x więcej niż faktyczny zysk firmy, ponieważ pozostałe grupy go
+zmniejszają - **Niszczyciele wartości:** Grupy 21-30%, 31-40% i 41-50%
+mają ujemny udział (około -4% do -7% każda), co oznacza, że każda
+transakcja w tych przedziałach aktywnie zmniejsza całkowity zysk firmy -
+**Katastrofa \>50%:** Grupa ekstremalnych rabatów zabiera -27%
+całkowitego zysku, co przy 900 transakcjach w tej grupie oznacza
+systematyczne niszczenie wartości na dużą skalę - **Efekt kompensacji:**
+Wykres jasno pokazuje, że rentowność firmy opiera się wyłącznie na dwóch
+pierwszych grupach (0-20% rabatu), które muszą "wyrabiać" stratę
+generowaną przez wszystkie głębsze rabaty - to niezrównoważony model
+biznesowy wymagający natychmiastowej interwencji
 
 ```{r, echo = FALSE}
 plot_ly(
@@ -580,14 +720,31 @@ plot_ly(
 
 ### Średnia wartość zakupu według poziomu rabatu
 
-Poniższy wykres liniowy przedstawia średnią wartość transakcji (w dolarach) dla każdej grupy rabatowej. Szara linia przerywana oznacza średnią globalną (~$230). Ta wizualizacja odpowiada na kluczowe pytanie: czy głębsze rabaty rzeczywiście zwiększają wartość koszyka zakupowego, jak zakładają klasyczne teorie rabatowe?
+Poniższy wykres liniowy przedstawia średnią wartość transakcji (w
+dolarach) dla każdej grupy rabatowej. Szara linia przerywana oznacza
+średnią globalną (\~\$230). Ta wizualizacja odpowiada na kluczowe
+pytanie: czy głębsze rabaty rzeczywiście zwiększają wartość koszyka
+zakupowego, jak zakładają klasyczne teorie rabatowe?
 
-Kluczowe obserwacje:
-- **Paradoks niskich rabatów:** Grupy 0-10% i 11-20% mają wartości zakupu ($230 i $220) blisko średniej globalnej, co jest nieoczekiwane - brak rabatu nie zniechęca klientów do kupowania produktów o standardowej wartości
-- **Wzrost dla średnich rabatów:** Grupy 21-30% ($460), 31-40% ($565) i 41-50% ($850) pokazują wyraźny wzrost wartości zakupu wraz z rabatem, co sugeruje, że głębsze rabaty są stosowane przy droższych produktach lub większych zamówieniach
-- **Dramatyczny spadek przy >50%:** Grupa ekstremalnych rabatów ma NAJNIŻSZĄ średnią wartość zakupu (~$75), co jest 3x niższe niż średnia - to wskazuje, że >50% rabatów są stosowane głównie przy tanich produktach lub produktach trudnych do sprzedaży
-- **Brak strategii "większy zakup = większy rabat":** Fakt, że najwyższe rabaty (>50%) idą w parze z najniższymi wartościami koszyka (~$75) jest całkowicie odwrotny do zdrowej strategii rabatowej, gdzie głębokie rabaty powinny nagradzać duże zamówienia
-- **Niszczenie wartości przy niskiej sprzedaży:** Kombinacja -114% marży (z pierwszego wykresu) i $75 średniej sprzedaży w grupie >50% oznacza, że firma daje ogromne rabaty na produkty o niskiej wartości, co jest podwójnie destrukcyjne - niska wartość transakcji + ogromna strata na każdej transakcji
+Kluczowe obserwacje: - **Paradoks niskich rabatów:** Grupy 0-10% i
+11-20% mają wartości zakupu (\$230 i \$220) blisko średniej globalnej,
+co jest nieoczekiwane - brak rabatu nie zniechęca klientów do kupowania
+produktów o standardowej wartości - **Wzrost dla średnich rabatów:**
+Grupy 21-30% (\$460), 31-40% (\$565) i 41-50% (\$850) pokazują wyraźny
+wzrost wartości zakupu wraz z rabatem, co sugeruje, że głębsze rabaty są
+stosowane przy droższych produktach lub większych zamówieniach -
+**Dramatyczny spadek przy \>50%:** Grupa ekstremalnych rabatów ma
+NAJNIŻSZĄ średnią wartość zakupu (\~\$75), co jest 3x niższe niż
+średnia - to wskazuje, że \>50% rabatów są stosowane głównie przy tanich
+produktach lub produktach trudnych do sprzedaży - **Brak strategii
+"większy zakup = większy rabat":** Fakt, że najwyższe rabaty (\>50%) idą
+w parze z najniższymi wartościami koszyka (\~\$75) jest całkowicie
+odwrotny do zdrowej strategii rabatowej, gdzie głębokie rabaty powinny
+nagradzać duże zamówienia - **Niszczenie wartości przy niskiej
+sprzedaży:** Kombinacja -114% marży (z pierwszego wykresu) i \$75
+średniej sprzedaży w grupie \>50% oznacza, że firma daje ogromne rabaty
+na produkty o niskiej wartości, co jest podwójnie destrukcyjne - niska
+wartość transakcji + ogromna strata na każdej transakcji
 
 ```{r, echo = FALSE}
 global_mean_sales <- mean(df$Sales, na.rm = TRUE)
@@ -627,18 +784,36 @@ plot_ly(
   )
 ```
 
-# 3. PYTANIE BADAWCZE #2: Które kategorie i podkategorie produktów generują najwyższą sprzedaż, a które najwyższy zysk?
+## 3.2. PYTANIE BADAWCZE 2: Które kategorie i podkategorie produktów generują najwyższą sprzedaż, a które najwyższy zysk?
 
-## 3.10. Analiza rentowności kategorii: wykres bąbelkowy
+### Analiza rentowności kategorii: wykres bąbelkowy
 
-Poniższy wykres bąbelkowy przedstawia trzywymiarową analizę kategorii produktów, gdzie oś X reprezentuje liczbę zamówień, oś Y średni zysk na transakcję, a rozmiar bąbelka odpowiada łącznej sumie sprzedaży. Ta wielowymiarowa wizualizacja pozwala jednocześnie ocenić wolumen sprzedaży, rentowność oraz skalę przychodów każdej kategorii. Analiza bezpośrednio odpowiada na pytanie badawcze #2: *"Które kategorie produktów generują najwyższą sprzedaż, a które najwyższy zysk?"*
+Poniższy wykres bąbelkowy przedstawia trzywymiarową analizę kategorii
+produktów, gdzie oś X reprezentuje liczbę zamówień, oś Y średni zysk na
+transakcję, a rozmiar bąbelka odpowiada łącznej sumie sprzedaży. Ta
+wielowymiarowa wizualizacja pozwala jednocześnie ocenić wolumen
+sprzedaży, rentowność oraz skalę przychodów każdej kategorii. Analiza
+bezpośrednio odpowiada na pytanie badawcze #2: *"Które kategorie
+produktów generują najwyższą sprzedaż, a które najwyższy zysk?"*
 
-Kluczowe obserwacje:
-- **Technology - gwiazdor portfela:** Kategoria Technology (największy niebieski bąbelek) dominuje we wszystkich trzech wymiarach - ma najwyższą liczbę zamówień (~6000), najwyższy średni zysk (~$80) i największą sumę sprzedaży, co czyni ją najbardziej wartościową kategorią w portfolio
-- **Office Supplies - masa krytyczna:** Artykuły biurowe (średni pomarańczowy bąbelek) mają umiarkowaną liczbę zamówień (~5500), ale niski średni zysk (~$20), co wskazuje na problem z marżami pomimo znaczącego wolumenu sprzedaży
-- **Furniture - problem rentowności:** Meble (mały zielony bąbelek) mają najmniejszą liczbę zamówień (~2000) i najniższy średni zysk (~$8), co sugeruje, że ta kategoria jest najmniej efektywna zarówno pod względem wolumenu jak i rentowności
-- **Paradoks skali:** Mimo że Office Supplies ma prawie tyle samo zamówień co Technology, jej średni zysk jest 4x niższy, co wskazuje na znaczące różnice w marżowości między kategoriami
-- **Strategia różnicowania:** Wyraźne rozdzielenie kategorii na wykresie sugeruje potrzebę różnych strategii dla każdej z nich: maksymalizacja skali dla Technology, poprawa marż dla Office Supplies, i reewaluacja oferty dla Furniture
+Kluczowe obserwacje: - **Technology - gwiazdor portfela:** Kategoria
+Technology (największy niebieski bąbelek) dominuje we wszystkich trzech
+wymiarach - ma najwyższą liczbę zamówień (\~6000), najwyższy średni zysk
+(\~\$80) i największą sumę sprzedaży, co czyni ją najbardziej
+wartościową kategorią w portfolio - **Office Supplies - masa
+krytyczna:** Artykuły biurowe (średni pomarańczowy bąbelek) mają
+umiarkowaną liczbę zamówień (\~5500), ale niski średni zysk (\~\$20), co
+wskazuje na problem z marżami pomimo znaczącego wolumenu sprzedaży -
+**Furniture - problem rentowności:** Meble (mały zielony bąbelek) mają
+najmniejszą liczbę zamówień (\~2000) i najniższy średni zysk (\~\$8), co
+sugeruje, że ta kategoria jest najmniej efektywna zarówno pod względem
+wolumenu jak i rentowności - **Paradoks skali:** Mimo że Office Supplies
+ma prawie tyle samo zamówień co Technology, jej średni zysk jest 4x
+niższy, co wskazuje na znaczące różnice w marżowości między
+kategoriami - **Strategia różnicowania:** Wyraźne rozdzielenie kategorii
+na wykresie sugeruje potrzebę różnych strategii dla każdej z nich:
+maksymalizacja skali dla Technology, poprawa marż dla Office Supplies, i
+reewaluacja oferty dla Furniture
 
 ```{r}
 category_stats <- dane %>%
@@ -679,16 +854,37 @@ plot_ly(
   )
 ```
 
-## 3.14. Top 5 podkategorii: sprzedaż vs rentowność
+### Top 5 podkategorii: sprzedaż vs rentowność
 
-Poniższe dwa wykresy słupkowe przedstawiają top 5 podkategorii produktów pod względem sprzedaży (lewy panel) oraz top 5 podkategorii według zysku (prawy panel). To zestawienie ujawnia kluczową różnicę między wielkością sprzedaży a faktyczną rentownością - produkty generujące najwyższe przychody nie zawsze są najbardziej opłacalne. Analiza odpowiada na pytanie badawcze #2: *"Które kategorie i podkategorie produktów generują najwyższą sprzedaż, a które najwyższy zysk?"*
+Poniższe dwa wykresy słupkowe przedstawiają top 5 podkategorii produktów
+pod względem sprzedaży (lewy panel) oraz top 5 podkategorii według zysku
+(prawy panel). To zestawienie ujawnia kluczową różnicę między wielkością
+sprzedaży a faktyczną rentownością - produkty generujące najwyższe
+przychody nie zawsze są najbardziej opłacalne. Analiza odpowiada na
+pytanie badawcze #2: *"Które kategorie i podkategorie produktów generują
+najwyższą sprzedaż, a które najwyższy zysk?"*
 
-Kluczowe obserwacje:
-- **Phones - podwójny lider:** Telefony pojawiają się w obu top 5 (2. miejsce w sprzedaży, 2. w zysku), co czyni je najbardziej zrównoważoną podkategorią - wysoka sprzedaż przekłada się na wysoki zysk, co wskazuje na dobrą marżowość
-- **Chairs - wysoka sprzedaż, brak rentowności:** Krzesła są liderem sprzedaży (~$330k), ale nie pojawiają się w top 5 zysków, co sugeruje bardzo niską marżę lub nawet straty na tej podkategorii pomimo ogromnego wolumenu - to czerwona flaga wymagająca analizy kosztów i rabatów
-- **Copiers - król rentowności:** Kopiarki generują najwyższy zysk (~$55k) mimo że nie są w top 5 sprzedaży, co wskazuje na wyjątkowo wysoką marżę - to strategiczna podkategoria, która zasługuje na większy nacisk sprzedażowy
-- **Binders - paradoks marży:** Segregatory są zarówno w top 5 sprzedaży (5. miejsce ~$200k) jak i top 5 zysku (5. miejsce ~$30k), ale stosunek zysku do sprzedaży jest niski (~15%), co wskazuje na produkt o wysokim wolumeniu ale niskiej marży
-- **Różne strategie produktowe:** Fakt, że tylko 2 z 5 top produktów sprzedażowych pojawiają się w top 5 zysków (Phones i Binders) oznacza, że firma sprzedaje głównie produkty o niskiej marży, podczas gdy najbardziej rentowne produkty (Copiers, Accessories, Paper) mają słabszą penetrację sprzedażową - potrzebna jest reorganizacja portfolio produktowego z naciskiem na cross-selling rentownych produktów
+Kluczowe obserwacje: - **Phones - podwójny lider:** Telefony pojawiają
+się w obu top 5 (2. miejsce w sprzedaży, 2. w zysku), co czyni je
+najbardziej zrównoważoną podkategorią - wysoka sprzedaż przekłada się na
+wysoki zysk, co wskazuje na dobrą marżowość - **Chairs - wysoka
+sprzedaż, brak rentowności:** Krzesła są liderem sprzedaży (\~\$330k),
+ale nie pojawiają się w top 5 zysków, co sugeruje bardzo niską marżę lub
+nawet straty na tej podkategorii pomimo ogromnego wolumenu - to czerwona
+flaga wymagająca analizy kosztów i rabatów - **Copiers - król
+rentowności:** Kopiarki generują najwyższy zysk (\~\$55k) mimo że nie są
+w top 5 sprzedaży, co wskazuje na wyjątkowo wysoką marżę - to
+strategiczna podkategoria, która zasługuje na większy nacisk
+sprzedażowy - **Binders - paradoks marży:** Segregatory są zarówno w top
+5 sprzedaży (5. miejsce \~\$200k) jak i top 5 zysku (5. miejsce
+\~\$30k), ale stosunek zysku do sprzedaży jest niski (\~15%), co
+wskazuje na produkt o wysokim wolumeniu ale niskiej marży - **Różne
+strategie produktowe:** Fakt, że tylko 2 z 5 top produktów sprzedażowych
+pojawiają się w top 5 zysków (Phones i Binders) oznacza, że firma
+sprzedaje głównie produkty o niskiej marży, podczas gdy najbardziej
+rentowne produkty (Copiers, Accessories, Paper) mają słabszą penetrację
+sprzedażową - potrzebna jest reorganizacja portfolio produktowego z
+naciskiem na cross-selling rentownych produktów
 
 ```{r}
 wrap_labels <- function(x, width = 12) stringr::str_wrap(x, width = width)
@@ -811,18 +1007,30 @@ p <- config(p, displayModeBar = FALSE)
 p
 ```
 
-# 3. PYTANIE BADAWCZE #3: Czy istnieją regiony o wysokiej sprzedaży, ale niskiej rentowności?
+## 3.3. PYTANIE BADAWCZE #3: Czy istnieją regiony o wysokiej sprzedaży, ale niskiej rentowności?
 
-## 3.7. Top 10 stanów według zysku
+### Top 10 stanów według zysku
 
-Poniższy wykres przedstawia dziesięć stanów USA generujących najwyższy łączny zysk w analizowanym okresie. Analiza geograficzna rentowności jest kluczowa dla odpowiedzi na pytanie badawcze #3: *"Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?"* oraz umożliwia identyfikację najważniejszych rynków dla firmy.
+Poniższy wykres przedstawia dziesięć stanów USA generujących najwyższy
+łączny zysk w analizowanym okresie. Analiza geograficzna rentowności
+jest kluczowa dla odpowiedzi na pytanie badawcze #3: *"Czy istnieją
+regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?"*
+oraz umożliwia identyfikację najważniejszych rynków dla firmy.
 
-Kluczowe obserwacje:
-- **Dominacja Kalifornii i Nowego Jorku:** Dwa stany generują łącznie ~150k$ zysku, co stanowi znaczną część całkowitego zysku firmy, wskazując na kluczowe znaczenie rynków wschodniego i zachodniego wybrzeża
-- **Koncentracja geograficzna:** Większość najbardziej rentownych stanów to duże centra metropolitalne (Kalifornia, Nowy Jork, Waszyngton, Michigan), co sugeruje korelację między urbanizacją a rentownością
-- **Duże różnice wewnętrzne:** Różnica między najlepszym stanem (~78k$) a dziesiątym (~10k$) jest prawie ośmiokrotna, co wskazuje na bardzo nierównomierny rozkład zysków geograficznych
-- **Obecność stanów południowych:** Indiana, Virginia i Georgia reprezentują region południowy, pokazując jego rosnące znaczenie ekonomiczne
-- **Potencjał konsolidacji:** Silna koncentracja zysków w kilku stanach może sugerować możliwość optymalizacji operacji poprzez skupienie zasobów na najbardziej rentownych rynkach
+Kluczowe obserwacje: - **Dominacja Kalifornii i Nowego Jorku:** Dwa
+stany generują łącznie \~150k\$ zysku, co stanowi znaczną część
+całkowitego zysku firmy, wskazując na kluczowe znaczenie rynków
+wschodniego i zachodniego wybrzeża - **Koncentracja geograficzna:**
+Większość najbardziej rentownych stanów to duże centra metropolitalne
+(Kalifornia, Nowy Jork, Waszyngton, Michigan), co sugeruje korelację
+między urbanizacją a rentownością - **Duże różnice wewnętrzne:** Różnica
+między najlepszym stanem (\~78k$) a dziesiątym (~10k$) jest prawie
+ośmiokrotna, co wskazuje na bardzo nierównomierny rozkład zysków
+geograficznych - **Obecność stanów południowych:** Indiana, Virginia i
+Georgia reprezentują region południowy, pokazując jego rosnące znaczenie
+ekonomiczne - **Potencjał konsolidacji:** Silna koncentracja zysków w
+kilku stanach może sugerować możliwość optymalizacji operacji poprzez
+skupienie zasobów na najbardziej rentownych rynkach
 
 ```{r, echo = FALSE}
 # Top 10 stanów według zysku
@@ -845,9 +1053,15 @@ plot_ly(
   )
 ```
 
-## 3.15. Analiza regionalna: sprzedaż vs rentowność
+### Analiza regionalna: sprzedaż vs rentowność
 
-Poniższe dwa wykresy przedstawiają kompleksową analizę rentowności czterech regionów geograficznych USA. Pierwszy wykres (scatter plot) pokazuje relację między wielkością sprzedaży a marżą zyskowności, gdzie rozmiar bąbelka reprezentuje wartość bezwzględną zysku. Drugi wykres (słupkowy) prezentuje bezpośrednie porównanie marży w poszczególnych regionach. Analiza odpowiada na pytanie badawcze #3: *"Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?"*
+Poniższe dwa wykresy przedstawiają kompleksową analizę rentowności
+czterech regionów geograficznych USA. Pierwszy wykres (scatter plot)
+pokazuje relację między wielkością sprzedaży a marżą zyskowności, gdzie
+rozmiar bąbelka reprezentuje wartość bezwzględną zysku. Drugi wykres
+(słupkowy) prezentuje bezpośrednie porównanie marży w poszczególnych
+regionach. Analiza odpowiada na pytanie badawcze #3: *"Czy istnieją
+regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?"*
 
 ```{r, echo = FALSE}
 # ANALIZA REGIONÓW - PRZYGOTOWANIE DANYCH
@@ -874,14 +1088,30 @@ region_summary <- df %>%
 
 ### Regiony: relacja sprzedaży i marży
 
-Poniższy wykres typu scatter (punktowy z bąbelkami) prezentuje jednoczesną wizualizację trzech wymiarów: wielkości sprzedaży (oś X), marży zysku (oś Y) oraz wartości bezwzględnej zysku (rozmiar bąbelka). Kolor bąbelka sygnalizuje stan rentowności: zielony (marża ≥15%), pomarańczowy (marża 10-15%), czerwony (marża <10%).
+Poniższy wykres typu scatter (punktowy z bąbelkami) prezentuje
+jednoczesną wizualizację trzech wymiarów: wielkości sprzedaży (oś X),
+marży zysku (oś Y) oraz wartości bezwzględnej zysku (rozmiar bąbelka).
+Kolor bąbelka sygnalizuje stan rentowności: zielony (marża ≥15%),
+pomarańczowy (marża 10-15%), czerwony (marża \<10%).
 
-Kluczowe obserwacje:
-- **East - lider pod każdym względem:** Region East ma najwyższą sprzedaż (~$680k), najwyższy zysk (największy bąbelek) i bardzo dobrą marżę (~17%), co czyni go gwiazdą portfolio - wszystkie metryki są optymalne
-- **West - wysoka skala, niska marża:** Region West generuje drugą co do wielkości sprzedaż (~$720k) ale ma znacznie niższą marżę (~22%) niż East, mimo największego bąbelka (największy zysk w wartościach bezwzględnych) - to pokazuje, że skala kompensuje słabszą efektywność
-- **Central - katastrofa biznesowa:** Region Central (czerwony bąbelek) ma UJEMNĄ marżę (~-10%), co oznacza, że każdy dolar sprzedaży generuje stratę - mimo sprzedaży ~$500k, firma traci pieniądze w tym regionie, co wymaga natychmiastowej interwencji
-- **South - pułapka niskiej marży:** Region South ma niską sprzedaż (~$390k) i marginalną marżę (~16%), co plasuje go w strefie pomarańczowej - to region bez wyraźnego profilu strategicznego
-- **Paradoks wielkości:** Wykres jasno pokazuje, że wielkość sprzedaży NIE gwarantuje rentowności - West ma większą sprzedaż niż East ale niższą marżę, a Central mimo znaczącej sprzedaży (~$500k) generuje wyłącznie straty
+Kluczowe obserwacje: - **East - lider pod każdym względem:** Region East
+ma najwyższą sprzedaż (\~\$680k), najwyższy zysk (największy bąbelek) i
+bardzo dobrą marżę (\~17%), co czyni go gwiazdą portfolio - wszystkie
+metryki są optymalne - **West - wysoka skala, niska marża:** Region West
+generuje drugą co do wielkości sprzedaż (\~\$720k) ale ma znacznie
+niższą marżę (\~22%) niż East, mimo największego bąbelka (największy
+zysk w wartościach bezwzględnych) - to pokazuje, że skala kompensuje
+słabszą efektywność - **Central - katastrofa biznesowa:** Region Central
+(czerwony bąbelek) ma UJEMNĄ marżę (\~-10%), co oznacza, że każdy dolar
+sprzedaży generuje stratę - mimo sprzedaży \~\$500k, firma traci
+pieniądze w tym regionie, co wymaga natychmiastowej interwencji -
+**South - pułapka niskiej marży:** Region South ma niską sprzedaż
+(\~\$390k) i marginalną marżę (\~16%), co plasuje go w strefie
+pomarańczowej - to region bez wyraźnego profilu strategicznego -
+**Paradoks wielkości:** Wykres jasno pokazuje, że wielkość sprzedaży NIE
+gwarantuje rentowności - West ma większą sprzedaż niż East ale niższą
+marżę, a Central mimo znaczącej sprzedaży (\~\$500k) generuje wyłącznie
+straty
 
 ```{r, echo = FALSE}
 plot_ly(
@@ -912,14 +1142,29 @@ plot_ly(
 
 ### Porównanie marży według regionów
 
-Poniższy wykres słupkowy przedstawia bezpośrednie porównanie marży zysku w czterech regionach. Dwie linie przerywane oznaczają progi: zielona (15% - marża bardzo dobra), pomarańczowa (10% - marża akceptowalna). Kolory słupków odpowiadają tym samym kryteriom co na poprzednim wykresie.
+Poniższy wykres słupkowy przedstawia bezpośrednie porównanie marży zysku
+w czterech regionach. Dwie linie przerywane oznaczają progi: zielona
+(15% - marża bardzo dobra), pomarańczowa (10% - marża akceptowalna).
+Kolory słupków odpowiadają tym samym kryteriom co na poprzednim
+wykresie.
 
-Kluczowe obserwacje:
-- **West - niespodzianka lidera:** Region West ma najwyższą marżę (22%), mimo że na poprzednim wykresie wydawał się mniej efektywny niż East - to pokazuje, że wysoka sprzedaż West rzeczywiście przekłada się na bardzo dobrą rentowność procentową
-- **East i South - powyżej progu:** Regiony East (16.7%) i South (16.3%) są powyżej zielonej linii (15%), co oznacza bardzo dobrą rentowność - to stabilne, zdrowe regiony
-- **Central - dramatyczna strata:** Region Central (-10.4%) jest jedynym czerwonym słupkiem, znajdującym się głęboko poniżej zera - to nie tylko brak zysku, ale aktywna destrukcja wartości firmy
-- **Dysproporcja 3:1:** Trzy regiony mają marżę 16-22%, podczas gdy jeden ma -10% - to wskazuje, że problem nie jest systemowy ale specyficzny dla Central i prawdopodobnie ma konkretne przyczyny do zidentyfikowania
-- **Priorytet strategiczny:** Fakt, że Central stanowi ~20% sprzedaży firmy (z poprzedniego wykresu ~$500k z ~$2500k total) ale generuje same straty oznacza, że eliminacja problemów w tym regionie może zwiększyć całkowity zysk firmy o dziesiątki procent - to najważniejszy priorytet operacyjny
+Kluczowe obserwacje: - **West - niespodzianka lidera:** Region West ma
+najwyższą marżę (22%), mimo że na poprzednim wykresie wydawał się mniej
+efektywny niż East - to pokazuje, że wysoka sprzedaż West rzeczywiście
+przekłada się na bardzo dobrą rentowność procentową - **East i South -
+powyżej progu:** Regiony East (16.7%) i South (16.3%) są powyżej
+zielonej linii (15%), co oznacza bardzo dobrą rentowność - to stabilne,
+zdrowe regiony - **Central - dramatyczna strata:** Region Central
+(-10.4%) jest jedynym czerwonym słupkiem, znajdującym się głęboko
+poniżej zera - to nie tylko brak zysku, ale aktywna destrukcja wartości
+firmy - **Dysproporcja 3:1:** Trzy regiony mają marżę 16-22%, podczas
+gdy jeden ma -10% - to wskazuje, że problem nie jest systemowy ale
+specyficzny dla Central i prawdopodobnie ma konkretne przyczyny do
+zidentyfikowania - **Priorytet strategiczny:** Fakt, że Central stanowi
+\~20% sprzedaży firmy (z poprzedniego wykresu \~\$500k z \~\$2500k
+total) ale generuje same straty oznacza, że eliminacja problemów w tym
+regionie może zwiększyć całkowity zysk firmy o dziesiątki procent - to
+najważniejszy priorytet operacyjny
 
 ```{r, echo = FALSE}
 plot_ly(
@@ -953,18 +1198,33 @@ plot_ly(
   )
 ```
 
-# 3. PYTANIE BADAWCZE #4: Jak zmieniały się sprzedaż i zysk w czasie – czy występuje sezonowość?
+## 3.4. PYTANIE BADAWCZE #4: Jak zmieniały się sprzedaż i zysk w czasie – czy występuje sezonowość?
 
-## 3.8. Sprzedaż w czasie według kategorii produktów
+### Sprzedaż w czasie według kategorii produktów
 
-Poniższy wykres obszarowy (stacked area chart) prezentuje dynamikę sprzedaży w podziale na kategorie produktów na przestrzeni całego analizowanego okresu (2014-2017). Format stackowany pozwala jednocześnie obserwować zarówno całkowitą sprzedaż (wysokość całego stosu), jak i udział poszczególnych kategorii w każdym okresie. Analiza ta uzupełnia odpowiedź na pytanie badawcze #4: *"Jak zmieniały się sprzedaż i zysk w czasie – czy występuje sezonowość?"*
+Poniższy wykres obszarowy (stacked area chart) prezentuje dynamikę
+sprzedaży w podziale na kategorie produktów na przestrzeni całego
+analizowanego okresu (2014-2017). Format stackowany pozwala jednocześnie
+obserwować zarówno całkowitą sprzedaż (wysokość całego stosu), jak i
+udział poszczególnych kategorii w każdym okresie. Analiza ta uzupełnia
+odpowiedź na pytanie badawcze #4: *"Jak zmieniały się sprzedaż i zysk w
+czasie – czy występuje sezonowość?"*
 
-Kluczowe obserwacje:
-- **Wyraźna sezonowość:** Widoczne są regularne peaki sprzedaży w czwartym kwartale każdego roku (listopad-grudzień), prawdopodobnie związane z sezonem zakupów świątecznych i promocjami Black Friday/Cyber Monday
-- **Proporcje kategorii stabilne:** Pomimo zmian w całkowitej sprzedaży, proporcje między kategoriami pozostają względnie stałe w czasie – Technology dominuje w każdym okresie
-- **Wzrost całkowitej sprzedaży:** Trend wzrostowy jest widoczny szczególnie w latach 2016-2017, gdzie peaki sezonowe osiągają wyższe wartości niż w latach poprzednich
-- **Spadki po sezonie:** Regularne spadki sprzedaży na początku każdego roku (styczeń-luty) wskazują na cykliczny charakter biznesu i możliwość lepszego planowania zapasów i kampanii marketingowych
-- **Technology motor wzrostu:** Kategoria Technology nie tylko ma największy udział, ale również wykazuje najsilniejszy wzrost w okresach szczytowych, co potwierdza jej kluczową rolę w strategii firmy
+Kluczowe obserwacje: - **Wyraźna sezonowość:** Widoczne są regularne
+peaki sprzedaży w czwartym kwartale każdego roku (listopad-grudzień),
+prawdopodobnie związane z sezonem zakupów świątecznych i promocjami
+Black Friday/Cyber Monday - **Proporcje kategorii stabilne:** Pomimo
+zmian w całkowitej sprzedaży, proporcje między kategoriami pozostają
+względnie stałe w czasie – Technology dominuje w każdym okresie -
+**Wzrost całkowitej sprzedaży:** Trend wzrostowy jest widoczny
+szczególnie w latach 2016-2017, gdzie peaki sezonowe osiągają wyższe
+wartości niż w latach poprzednich - **Spadki po sezonie:** Regularne
+spadki sprzedaży na początku każdego roku (styczeń-luty) wskazują na
+cykliczny charakter biznesu i możliwość lepszego planowania zapasów i
+kampanii marketingowych - **Technology motor wzrostu:** Kategoria
+Technology nie tylko ma największy udział, ale również wykazuje
+najsilniejszy wzrost w okresach szczytowych, co potwierdza jej kluczową
+rolę w strategii firmy
 
 ```{r, echo = FALSE}
 # Sprzedaż w czasie według Kategorii (wykres obszarowy)
@@ -995,16 +1255,35 @@ plot_ly(
   )
 ```
 
-## 3.12. Wydajność dni tygodnia: analiza wielowymiarowa
+### Wydajność dni tygodnia: analiza wielowymiarowa
 
-Poniższa mapa cieplna (heatmap) przedstawia znormalizowaną wydajność poszczególnych dni tygodnia w trzech kluczowych metrykach biznesowych: liczbie zamówień, średniej wartości zamówienia oraz średnim zysku. Zastosowanie normalizacji (skala 0-1) i gradientu kolorystycznego (żółty = najniższa wartość w danej metryce, czerwony = najwyższa) pozwala na szybką identyfikację najlepszych i najgorszych dni dla różnych wskaźników. Analiza ta jest kluczowa dla optymalizacji operacji i kampanii marketingowych.
+Poniższa mapa cieplna (heatmap) przedstawia znormalizowaną wydajność
+poszczególnych dni tygodnia w trzech kluczowych metrykach biznesowych:
+liczbie zamówień, średniej wartości zamówienia oraz średnim zysku.
+Zastosowanie normalizacji (skala 0-1) i gradientu kolorystycznego (żółty
+= najniższa wartość w danej metryce, czerwony = najwyższa) pozwala na
+szybką identyfikację najlepszych i najgorszych dni dla różnych
+wskaźników. Analiza ta jest kluczowa dla optymalizacji operacji i
+kampanii marketingowych.
 
-Kluczowe obserwacje:
-- **Paradoks środy:** Środa ma NAJNIŻSZĄ liczbę zamówień (371 - żółta komórka), ale jednocześnie NAJWYŻSZY średni zysk ($40 - czerwona komórka), co wskazuje na znacznie wyższą jakość/rentowność transakcji w tym dniu pomimo niskiego wolumenu
-- **Poniedziałek - król wolumenu:** Poniedziałek generuje najwyższą liczbę zamówień (1871 - czerwona komórka), ale ma relatywnie niski średni zysk ($28), co sugeruje, że dni o wysokim wolumenie nie przekładają się automatycznie na wysoką rentowność
-- **Wtorek - najwyższa wartość koszyka:** Wtorek wyróżnia się najwyższą średnią wartością zamówienia ($260 - czerwona komórka) i dobrym średnim zyskiem ($32), co czyni go jednym z najbardziej wartościowych dni
-- **Sobota - najsłabszy dzień:** Sobota ma najniższą średnią wartość zamówienia ($216) i najniższy średni zysk ($25 - żółte komórki), co wskazuje na ten dzień jako priorytet do optymalizacji lub specjalnych kampanii
-- **Optymalny mix:** Idealne dni to wtorek i niedziela - łączą umiarkowanie wysoką liczbę zamówień z wysoką wartością koszyka i dobrym zyskiem, podczas gdy środa oferuje najwyższą rentowność przy niskim wolumenie (potencjał premium/B2B)
+Kluczowe obserwacje: - **Paradoks środy:** Środa ma NAJNIŻSZĄ liczbę
+zamówień (371 - żółta komórka), ale jednocześnie NAJWYŻSZY średni zysk
+(\$40 - czerwona komórka), co wskazuje na znacznie wyższą
+jakość/rentowność transakcji w tym dniu pomimo niskiego wolumenu -
+**Poniedziałek - król wolumenu:** Poniedziałek generuje najwyższą liczbę
+zamówień (1871 - czerwona komórka), ale ma relatywnie niski średni zysk
+(\$28), co sugeruje, że dni o wysokim wolumenie nie przekładają się
+automatycznie na wysoką rentowność - **Wtorek - najwyższa wartość
+koszyka:** Wtorek wyróżnia się najwyższą średnią wartością zamówienia
+(\$260 - czerwona komórka) i dobrym średnim zyskiem (\$32), co czyni go
+jednym z najbardziej wartościowych dni - **Sobota - najsłabszy dzień:**
+Sobota ma najniższą średnią wartość zamówienia (\$216) i najniższy
+średni zysk (\$25 - żółte komórki), co wskazuje na ten dzień jako
+priorytet do optymalizacji lub specjalnych kampanii - **Optymalny mix:**
+Idealne dni to wtorek i niedziela - łączą umiarkowanie wysoką liczbę
+zamówień z wysoką wartością koszyka i dobrym zyskiem, podczas gdy środa
+oferuje najwyższą rentowność przy niskim wolumenie (potencjał
+premium/B2B)
 
 ```{r}
 
@@ -1114,9 +1393,16 @@ plot_ly(
   )
 ```
 
-## 3.16. Analiza sezonowości sprzedaży i zysku
+### Analiza sezonowości sprzedaży i zysku
 
-Poniższy heatmap przedstawia równoczesne porównanie indeksów sezonowości dla sprzedaży i zysku w układzie miesięcznym. Indeks sezonowości (gdzie 100 = średnia roczna) pozwala zidentyfikować miesiące o wyjątkowo wysokiej lub niskiej aktywności biznesowej. Kolory czerwono-żółto-zielone wizualizują intensywność: czerwony = wartości najniższe, zielony = najwyższe. Analiza odpowiada na pytanie badawcze #4: *"Czy istnieje wyraźna sezonowość w sprzedaży – które miesiące są najbardziej i najmniej rentowne?"*
+Poniższy heatmap przedstawia równoczesne porównanie indeksów sezonowości
+dla sprzedaży i zysku w układzie miesięcznym. Indeks sezonowości (gdzie
+100 = średnia roczna) pozwala zidentyfikować miesiące o wyjątkowo
+wysokiej lub niskiej aktywności biznesowej. Kolory
+czerwono-żółto-zielone wizualizują intensywność: czerwony = wartości
+najniższe, zielony = najwyższe. Analiza odpowiada na pytanie badawcze
+#4: *"Czy istnieje wyraźna sezonowość w sprzedaży – które miesiące są
+najbardziej i najmniej rentowne?"*
 
 ```{r, echo = FALSE}
 # ANALIZA SEZONOWOŚCI - PRZYGOTOWANIE DANYCH
@@ -1154,12 +1440,27 @@ seasonality_analysis <- df %>%
   arrange(month_num)
 ```
 
-Kluczowe obserwacje:
-- **Q4 - absolutni królowie zysku:** Wrzesień (184), grudzień (182) i listopad (170) to trzy najbardziej rentowne miesiące roku, mimo że sprzedaż jest tylko umiarkowana (81, 89, 80) - wrzesień generuje 84% więcej zysku niż średnia przy 19% niższej sprzedaży, co oznacza ekstremalnie wysoką marżę
-- **Maj-czerwiec - równowaga sprzedaży i zysku:** Miesiące maj (sprzedaż 107, zysk 161) i czerwiec (sprzedaż 120, zysk 155) są jedynymi, które łączą wysoką sprzedaż z wysokim zyskiem - czerwiec ma najwyższą sprzedaż w roku, podczas gdy maj osiąga lepszą efektywność (61% zysku przy 7% sprzedaży)
-- **Q1 - martwy sezon ze zdrową marżą:** Styczeń-kwiecień (sprzedaż: 50, 38, 31, 43) są najsłabszymi miesiącami sprzedażowymi, ale zyski (77, 58, 83, 91) spadają wolniej niż sprzedaż - marzec ma 69% niższą sprzedaż ale tylko 17% niższy zysk, co wskazuje na kompensację wyższą marżą
-- **Sierpień - anomalia strat:** Sierpień ma katastrofalnie niską sprzedaż (49 - drugi najgorszy) ale zysk znacznie powyżej średniej (133), co daje najwyższy wskaźnik efektywności w roku - prawdopodobnie selektywna sprzedaż tylko najrentowniejszych produktów
-- **Lipiec - efekt wakacji:** Lipiec wykazuje drastyczny spadek zarówno sprzedaży (72) jak i zysku (105) po szczycie czerwca (120, 155), co sugeruje, że wakacyjne spowolnienie dotyka zarówno wolumenu jak i marży - potencjalnie efekt rabatów letnich niszczących rentowność
+Kluczowe obserwacje: - **Q4 - absolutni królowie zysku:** Wrzesień
+(184), grudzień (182) i listopad (170) to trzy najbardziej rentowne
+miesiące roku, mimo że sprzedaż jest tylko umiarkowana (81, 89, 80) -
+wrzesień generuje 84% więcej zysku niż średnia przy 19% niższej
+sprzedaży, co oznacza ekstremalnie wysoką marżę - **Maj-czerwiec -
+równowaga sprzedaży i zysku:** Miesiące maj (sprzedaż 107, zysk 161) i
+czerwiec (sprzedaż 120, zysk 155) są jedynymi, które łączą wysoką
+sprzedaż z wysokim zyskiem - czerwiec ma najwyższą sprzedaż w roku,
+podczas gdy maj osiąga lepszą efektywność (61% zysku przy 7%
+sprzedaży) - **Q1 - martwy sezon ze zdrową marżą:** Styczeń-kwiecień
+(sprzedaż: 50, 38, 31, 43) są najsłabszymi miesiącami sprzedażowymi, ale
+zyski (77, 58, 83, 91) spadają wolniej niż sprzedaż - marzec ma 69%
+niższą sprzedaż ale tylko 17% niższy zysk, co wskazuje na kompensację
+wyższą marżą - **Sierpień - anomalia strat:** Sierpień ma katastrofalnie
+niską sprzedaż (49 - drugi najgorszy) ale zysk znacznie powyżej średniej
+(133), co daje najwyższy wskaźnik efektywności w roku - prawdopodobnie
+selektywna sprzedaż tylko najrentowniejszych produktów - **Lipiec -
+efekt wakacji:** Lipiec wykazuje drastyczny spadek zarówno sprzedaży
+(72) jak i zysku (105) po szczycie czerwca (120, 155), co sugeruje, że
+wakacyjne spowolnienie dotyka zarówno wolumenu jak i marży -
+potencjalnie efekt rabatów letnich niszczących rentowność
 
 ```{r, echo = FALSE}
 if(nrow(seasonality_analysis) > 0) {
@@ -1207,18 +1508,37 @@ if(nrow(seasonality_analysis) > 0) {
 }
 ```
 
-# 3. PYTANIE BADAWCZE #5: Które produkty lub podkategorie generują straty i jakie czynniki na to wpływają?
+## 3.5. PYTANIE BADAWCZE 5: Które produkty lub podkategorie generują straty i jakie czynniki na to wpływają?
 
-## 3.17. Produkty ze stratami (straty finansowe według podkategorii)
+### Produkty ze stratami (straty finansowe według podkategorii)
 
-Poniższy wykres słupkowy pokazuje 10 podkategorii produktów, które wygenerowały największe straty finansowe w ogólnym bilansie zysku/straty w całym okresie analizy (2014-2017). Straty te reprezentują czystą ujemną rentowność dla tych linii produktowych – ponad wartość ich sprzedaży straciła firma na każdym z nich. Ten segment nierentownych produktów jest bezpośrednią konsekwencją polityki rabatowej analizowanej w pytaniu badawczym #1 i wymaga natychmiastowej interwencji strategicznej. Analiza odpowiada na pytanie badawcze #5: *"Które produkty lub podkategorie generują straty i jakie czynniki (rabat, region, wysyłka) na to wpływają?"*
+Poniższy wykres słupkowy pokazuje 10 podkategorii produktów, które
+wygenerowały największe straty finansowe w ogólnym bilansie zysku/straty
+w całym okresie analizy (2014-2017). Straty te reprezentują czystą
+ujemną rentowność dla tych linii produktowych – ponad wartość ich
+sprzedaży straciła firma na każdym z nich. Ten segment nierentownych
+produktów jest bezpośrednią konsekwencją polityki rabatowej analizowanej
+w pytaniu badawczym #1 i wymaga natychmiastowej interwencji
+strategicznej. Analiza odpowiada na pytanie badawcze #5: *"Które
+produkty lub podkategorie generują straty i jakie czynniki (rabat,
+region, wysyłka) na to wpływają?"*
 
-Kluczowe obserwacje:
-- **Trójka "niszczycieli wartości":** Binders ($-38,537), Tables ($-32,378) i Machines ($-30,095) generują 60% wszystkich strat w portfolio – te trzy podkategorie są pierwsze do analizy przyczyn i zmian strategicznych
-- **Podatność droższych produktów na rabaty:** Zaobserwowana tendencja, że droższe i bardziej złożone produkty (tabele, maszyny, biniki) są bardziej wrażliwe na straty, sugeruje, że rabaty są mniej efektywne dla produktów premium
-- **Sektor biurowy rozczarowuje:** Produkty biurowe (Binders, Fasteners, Labels, Supplies) dominują listę największych strat - to wskazuje na problem z rentowności w tym segmencie
-- **Duża liczba kategorii w strefie strat:** 10 podkategorii ma ujemną rentowność, co oznacza że 25% portfolio (10 z 40 podkategorii wykazuje straty)
-- **Korelacja z polityką rabatów:** Krzyżowe analizy z danymi rabatów wykazały że produkty na liście strat otrzymują średnio wyższe rabaty niż produkty rentowne - to silnie sugeruje powiązanie między polityką rabatową a stratami
+Kluczowe obserwacje: - **Trójka "niszczycieli wartości":** Binders
+($-38,537), Tables ($-32,378) i Machines (\$-30,095) generują 60%
+wszystkich strat w portfolio – te trzy podkategorie są pierwsze do
+analizy przyczyn i zmian strategicznych - **Podatność droższych
+produktów na rabaty:** Zaobserwowana tendencja, że droższe i bardziej
+złożone produkty (tabele, maszyny, biniki) są bardziej wrażliwe na
+straty, sugeruje, że rabaty są mniej efektywne dla produktów premium -
+**Sektor biurowy rozczarowuje:** Produkty biurowe (Binders, Fasteners,
+Labels, Supplies) dominują listę największych strat - to wskazuje na
+problem z rentowności w tym segmencie - **Duża liczba kategorii w
+strefie strat:** 10 podkategorii ma ujemną rentowność, co oznacza że 25%
+portfolio (10 z 40 podkategorii wykazuje straty) - **Korelacja z
+polityką rabatów:** Krzyżowe analizy z danymi rabatów wykazały że
+produkty na liście strat otrzymują średnio wyższe rabaty niż produkty
+rentowne - to silnie sugeruje powiązanie między polityką rabatową a
+stratami
 
 ```{r, echo = FALSE}
 loss_products <- df %>%
@@ -1268,10 +1588,14 @@ plot_ly(
   )
 ```
 
-## 3.20. Porównanie produktów stratnych vs zyskownych - analiza przyczyn
+### Porównanie produktów stratnych vs zyskownych - analiza przyczyn
 
-Poniższy wykres porównuje top 3 najbardziej stratne podkategorie z top 3 najbardziej zyskownymi, analizując kluczowe metryki biznesowe: średni rabat, marżę zysku, sprzedaż na zamówienie oraz całkowity zysk/stratę. To bezpośrednie porównanie ujawnia, które czynniki operacyjne różnicują produkty sukcesu od produktów generujących straty, odpowiadając na pytanie badawcze #5 o przyczyny strat.
-
+Poniższy wykres porównuje top 3 najbardziej stratne podkategorie z top 3
+najbardziej zyskownymi, analizując kluczowe metryki biznesowe: średni
+rabat, marżę zysku, sprzedaż na zamówienie oraz całkowity zysk/stratę.
+To bezpośrednie porównanie ujawnia, które czynniki operacyjne różnicują
+produkty sukcesu od produktów generujących straty, odpowiadając na
+pytanie badawcze #5 o przyczyny strat.
 
 ```{r, echo = FALSE}
 # Top 3 stratne produkty
@@ -1424,10 +1748,17 @@ p3
 p4
 ```
 
-## 3.21. Analiza dekompozycji strat - wykres kaskadowy (Waterfall)
+### Analiza dekompozycji strat - wykres kaskadowy (Waterfall)
 
-Poniższy wykres kaskadowy (waterfall chart) przedstawia szczegółową dekompozycję czynników wpływających na straty w top 3 najbardziej problematycznych podkategoriach (Binders: -$38k, Tables: -$32k, Machines: -$30k). Analiza rozpoczyna się od całkowitej sprzedaży i stopniowo odejmuje poszczególne składniki kosztowe (rabaty, koszty wysyłki) oraz inne czynniki, aby pokazać, jak powstaje końcowa strata netto. Ta wizualizacja bezpośrednio odpowiada na część pytania badawczego #5: *"jakie czynniki (rabat, region, wysyłka) wpływają na straty"*.
-
+Poniższy wykres kaskadowy (waterfall chart) przedstawia szczegółową
+dekompozycję czynników wpływających na straty w top 3 najbardziej
+problematycznych podkategoriach (Binders: -\$38k, Tables: -\$32k,
+Machines: -\$30k). Analiza rozpoczyna się od całkowitej sprzedaży i
+stopniowo odejmuje poszczególne składniki kosztowe (rabaty, koszty
+wysyłki) oraz inne czynniki, aby pokazać, jak powstaje końcowa strata
+netto. Ta wizualizacja bezpośrednio odpowiada na część pytania
+badawczego #5: *"jakie czynniki (rabat, region, wysyłka) wpływają na
+straty"*.
 
 ```{r, echo = FALSE}
 # Przygotowanie danych dla top 3 stratnych podkategorii
@@ -1511,16 +1842,34 @@ for (p in plots_list) {
 }
 ```
 
-## 3.11. Czas dostawy i rentowność według regionów
+### Czas dostawy i rentowność według regionów
 
-Poniższy wykres słupkowy przedstawia średni czas dostawy dla każdego z czterech regionów USA, z kodowaniem kolorystycznym reprezentującym średni zysk (gradient od szarego/żółtego = niski zysk, do czerwonego = wysoki zysk). Ta wielowymiarowa wizualizacja pozwala jednocześnie ocenić efektywność logistyczną (wysokość słupka) i rentowność biznesową (kolor słupka) każdego regionu. Analiza odnosi się do pytania badawczego #5: *"Które produkty lub podkategorie generują straty i jakie czynniki (rabat, region, wysyłka) na to wpływają?"*
+Poniższy wykres słupkowy przedstawia średni czas dostawy dla każdego z
+czterech regionów USA, z kodowaniem kolorystycznym reprezentującym
+średni zysk (gradient od szarego/żółtego = niski zysk, do czerwonego =
+wysoki zysk). Ta wielowymiarowa wizualizacja pozwala jednocześnie ocenić
+efektywność logistyczną (wysokość słupka) i rentowność biznesową (kolor
+słupka) każdego regionu. Analiza odnosi się do pytania badawczego #5:
+*"Które produkty lub podkategorie generują straty i jakie czynniki
+(rabat, region, wysyłka) na to wpływają?"*
 
-Kluczowe obserwacje:
-- **East i West - najlepsza kombinacja:** Regiony East i West mają najkrótszy czas dostawy (3.9 dni) ORAZ najwyższy średni zysk (czerwone słupki ~$32), co pokazuje, że szybka dostawa może być konkurencyjną zaletą bez konieczności rezygnacji z rentowności
-- **Central - problem rentowności:** Region Central ma najdłuższy średni czas dostawy (4.1 dni) i jednocześnie najniższy średni zysk (szary słupek), co wskazuje na podwójny problem - zarówno logistyczny jak i biznesowy
-- **South - pośrednie wyniki:** Region South ma umiarkowany czas dostawy (4.0 dni) i średnią rentowność (pomarańczowy kolor ~$25), pozycjonując się pomiędzy liderami a ostatnim miejscem
-- **Korelacja pozytywna:** Wykres pokazuje, że szybsza dostawa (niższe słupki) koreluje z wyższą rentownością (ciemniejszy czerwony), co sugeruje, że efektywność operacyjna przekłada się na wyniki finansowe
-- **Priorytet inwestycyjny Central:** Region Central wymaga największej uwagi - zarówno pod kątem optymalizacji procesów logistycznych (redukcja czasu dostawy), jak i analizy przyczyn niskiej rentowności (rabaty, koszty, mieszanka produktowa)
+Kluczowe obserwacje: - **East i West - najlepsza kombinacja:** Regiony
+East i West mają najkrótszy czas dostawy (3.9 dni) ORAZ najwyższy średni
+zysk (czerwone słupki \~\$32), co pokazuje, że szybka dostawa może być
+konkurencyjną zaletą bez konieczności rezygnacji z rentowności -
+**Central - problem rentowności:** Region Central ma najdłuższy średni
+czas dostawy (4.1 dni) i jednocześnie najniższy średni zysk (szary
+słupek), co wskazuje na podwójny problem - zarówno logistyczny jak i
+biznesowy - **South - pośrednie wyniki:** Region South ma umiarkowany
+czas dostawy (4.0 dni) i średnią rentowność (pomarańczowy kolor \~\$25),
+pozycjonując się pomiędzy liderami a ostatnim miejscem - **Korelacja
+pozytywna:** Wykres pokazuje, że szybsza dostawa (niższe słupki)
+koreluje z wyższą rentownością (ciemniejszy czerwony), co sugeruje, że
+efektywność operacyjna przekłada się na wyniki finansowe - **Priorytet
+inwestycyjny Central:** Region Central wymaga największej uwagi -
+zarówno pod kątem optymalizacji procesów logistycznych (redukcja czasu
+dostawy), jak i analizy przyczyn niskiej rentowności (rabaty, koszty,
+mieszanka produktowa)
 
 ```{r}
 
@@ -1607,7 +1956,6 @@ limity <- cut(dane$Sales,
 tabela_sales <- freq(limity)
 
 ```
-
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 kbl(tabela_sales, caption = "Tabela 1. Rozkład sprzedaży w Superstore (USD)") %>%
@@ -1877,7 +2225,9 @@ ggplot(dane, aes(x = Discount, y = Profit)) +
 ```
 
 ## 5.1. Korelacja Spearmana
-Poniższa analiza sprawdza wpływ polityki rabatowej na rentowność sprzedaży.
+
+Poniższa analiza sprawdza wpływ polityki rabatowej na rentowność
+sprzedaży.
 
 **H0:** Nie istnieje statystycznie istotna zależność między wysokością
 
@@ -1911,10 +2261,14 @@ ggscatterstats(
 
 ```
 
-Wnioski: Analiza wykazuje istotną statystycznie, ujemną korelację (Spearman rho = -0.54). Oznacza to, że wzrost rabatu drastycznie obniża zysk. Linia regresji pokazuje, że po przekroczeniu progu 20% rabatu, transakcje stają się systematycznie stratne.
+Wnioski: Analiza wykazuje istotną statystycznie, ujemną korelację
+(Spearman rho = -0.54). Oznacza to, że wzrost rabatu drastycznie obniża
+zysk. Linia regresji pokazuje, że po przekroczeniu progu 20% rabatu,
+transakcje stają się systematycznie stratne.
 
-
-Analiza korelacji r-Spearmana wykazała istnienie statystycznie istotnej,ujemnej zależności pomiędzy wysokością udzielonego rabatu a generowanym
+Analiza korelacji r-Spearmana wykazała istnienie statystycznie
+istotnej,ujemnej zależności pomiędzy wysokością udzielonego rabatu a
+generowanym
 
 zyskiem. Oznacza to, że zwiększanie poziomu rabatów wiąże się ze
 
@@ -1929,8 +2283,6 @@ rabatowej na marżowość. Choć rabaty mają na celu stymulowanie sprzedaży,
 dane pokazują, że przekroczenie progu 20-30% rabatu w większości
 
 przypadków prowadzi do nieodwracalnej utraty rentowności transakcji.
-
-
 
 ```{r}
 
@@ -1987,9 +2339,8 @@ p2
 
 ```
 
-
-
 ## 5.2. Regresja liniowa: wpływ rabatu na zysk
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
 # Model regresji
@@ -2025,8 +2376,6 @@ ggplot(dane, aes(x = Discount, y = Profit)) +
 
 ```
 
-
-
 ```{r}
 
 ggbetweenstats(
@@ -2057,17 +2406,13 @@ ggbetweenstats(
 
 ```
 
-Wnioski: Test potwierdza istotne różnice między grupami (p < 0.001).
-
-
+Wnioski: Test potwierdza istotne różnice między grupami (p \< 0.001).
 
 Technology (Technologia) jest liderem rentowności.
 
-
-
-Furniture (Meble) wypada najgorzej, mając medianę zysku znacznie niższą od pozostałych, a także dużą liczbę wartości ujemnych (transakcji stratnych).
-
-
+Furniture (Meble) wypada najgorzej, mając medianę zysku znacznie niższą
+od pozostałych, a także dużą liczbę wartości ujemnych (transakcji
+stratnych).
 
 ```{r}
 
@@ -2085,11 +2430,12 @@ ggcorrmat(
 
 ```
 
-Sales vs Profit (0.48): Istnieje dodatnia korelacja, ale nie jest ona idealna (r=0.48), co oznacza, że wysoka sprzedaż nie gwarantuje wysokiego zysku.
+Sales vs Profit (0.48): Istnieje dodatnia korelacja, ale nie jest ona
+idealna (r=0.48), co oznacza, że wysoka sprzedaż nie gwarantuje
+wysokiego zysku.
 
-
-
-Discount vs Profit (-0.22): Potwierdzenie niszczącego wpływu rabatów na wynik finansowy.
+Discount vs Profit (-0.22): Potwierdzenie niszczącego wpływu rabatów na
+wynik finansowy.
 
 ```{r}
 
@@ -2119,9 +2465,8 @@ ggscatterstats(
 
 ```
 
-
-
-2.  Które kategorie i podkategorie produktów generują najwyższą sprzedaż, a które najwyższy zysk?
+2.  Które kategorie i podkategorie produktów generują najwyższą
+    sprzedaż, a które najwyższy zysk?
 
 ```{r}
 
@@ -2155,9 +2500,8 @@ ggbetweenstats(
 
 ```
 
-
-
-3.  Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej) rentowności?
+3.  Czy istnieją regiony o wysokiej sprzedaży, ale niskiej (lub ujemnej)
+    rentowności?
 
 ```{r}
 
@@ -2190,9 +2534,6 @@ ggbetweenstats(
 )
 
 ```
-
-
-
 
 ```{r}
 
@@ -2260,8 +2601,6 @@ ggplot(dane, aes(x = Profit, y = Region, fill = Region)) +
 
 ```
 
-
-
 ```{r}
 
 # 1. Liczymy p-value dla Sprzedaży
@@ -2326,8 +2665,6 @@ ggplot(dane, aes(x = Sales, y = Region, fill = Region)) +
 
 ```
 
-
-
 ```{r}
 
 # 1. Liczymy p-value dla Rabatu
@@ -2388,14 +2725,14 @@ ggplot(dane, aes(x = Discount, y = Region, fill = Region)) +
 
 ```
 
+6.  Podsumowanie Przeprowadzona analiza pozwala na sformułowanie
+    następujących rekomendacji biznesowych:
 
-6. Podsumowanie 
-Przeprowadzona analiza pozwala na sformułowanie następujących rekomendacji biznesowych:
+Ograniczenie rabatów: Rabaty powyżej 20% w kategorii Meble są głównym
+źródłem strat. Należy zrewidować politykę cenową w tym segmencie.
 
-Ograniczenie rabatów: Rabaty powyżej 20% w kategorii Meble są głównym źródłem strat. Należy zrewidować politykę cenową w tym segmencie.
+Fokus na Technologię: Kategoria Technology generuje najwyższą marżę i
+powinna być priorytetem w kampaniach marketingowych.
 
-Fokus na Technologię: Kategoria Technology generuje najwyższą marżę i powinna być priorytetem w kampaniach marketingowych.
-
-Sezonowość: Należy przygotować zapasy na szczyt sprzedażowy w IV kwartale, pamiętając jednak o kontroli marży w tym okresie.
-
-
+Sezonowość: Należy przygotować zapasy na szczyt sprzedażowy w IV
+kwartale, pamiętając jednak o kontroli marży w tym okresie.
